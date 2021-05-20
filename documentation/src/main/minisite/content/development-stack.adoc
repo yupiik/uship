@@ -1,0 +1,212 @@
+= Uship Usage
+:minisite-index: 200
+:minisite-index-title: Usage
+:minisite-index-description: How to develop an µship application.
+:minisite-index-icon: code
+:minisite-keywords: Uship, microservice, development
+
+== Setup your JSON-RPC service with µship stack
+
+To get started, you have to create a new project.
+This part will use Maven to illustrate the process but it is easily adaptable to Gradle or any Java based project.
+
+To create a new Apache Maven project, you can use `mvn archetype:generate` but we recommend you to just create a folder and manually write a pom to avoid to inherit from a legacy setup.
+
+Here is a `pom.xml` template you can use to get started:
+
+[source,xml]
+.pom.xml
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <1>
+  <groupId>com.company</groupId>
+  <artifactId>my-app</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+
+  <properties>
+    <maven.compiler.java.version>11</maven.compiler.java.version>
+
+    <uship.version>...</uship.version> <2>
+  </properties>
+
+  <dependencies>
+    <dependency> <3>
+      <groupId>io.yupiik.logging</groupId>
+      <artifactId>yupiik-logging-jul</artifactId>
+      <version>1.0.0</version>
+    </dependency>
+    <dependency> <4>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>5.8.0-M1</version>
+      <scope>test</scope>
+      <exclusions>
+        <exclusion> <5>
+          <groupId>org.jetbrains.kotlin</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusion>
+    </dependency>
+  </dependencies>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency> <6>
+        <groupId>io.yupiik.uship</groupId>
+        <artifactId>bom</artifactId>
+        <version>${uship.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <build>
+    <plugins>
+      <plugin> <7>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>3.2.0</version>
+        <configuration>
+          <encoding>UTF-8</encoding>
+        </configuration>
+      </plugin>
+      <plugin> <8>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.8.1</version>
+        <configuration>
+          <source>${maven.compiler.java.version}</source>
+          <target>${maven.compiler.java.version}</target>
+          <release>${maven.compiler.java.version}</release>
+          <encoding>UTF-8</encoding>
+          <parameters>true</parameters>
+        </configuration>
+      </plugin>
+      <plugin> <9>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.0.0-M5</version>
+        <configuration>
+          <trimStackTrace>false</trimStackTrace> <10>
+          <systemPropertyVariables> <11>
+            <java.util.logging.manager>io.yupiik.logging.jul.YupiikLogManager</java.util.logging.manager>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
+----
+<.> Ensure to define your project metadata, note that this setup will be compatible with a multi-module project too,
+<.> Define uship version as a variable for easier upgrades (not required),
+<.> We use Yupiik Logging to get a more cloud friendly logging but this is not required at all, skip this dependency if not desired (if you prefer Log4j2 or so use JUL binding for example),
+<.> We want to write tests with JUnit 5 so we set it as dependency,
+<.> JUnit 5.8.0-M1 got a pom bug so we force kotlin exclusion to workaround it,
+<.> We import the UShip bom to get dependencies versions right,
+<.> We force the encoding for resources to avoid surprises (OS dependent otherwise),
+<.> We force the compiler to use the Java version we want (note you can use any version >= 11),
+<.> We force surefire version to ensure we are JUnit 5 compatible,
+<.> We prevent surefire to trim the stack when an exception is thrown - it swallows the information you need to understand why it failed in general,
+<.> We force Yupiik logging manager (if you don't use Yupiik Logging, skip it).
+
+NOTE: µship does *not* use a parent pom to set it up automatically because:
+1. it can quickly get outdated with transitive dependencies and project must be able to update any of the plugin/dependencies without a new µship release for flexibility,
+2. you can use other plugins (`junit-platform-maven-plugin` instead of `maven-surefire-plugin` for example, spock, etc...),
+3. it is saner to use a project related parent than a cross-project parent which is a bad practise and breaks several Maven features/integrations.
+
+
+At that stage we have a good "parent" pom but to be able to code against it you should add the related dependencies.
+The simplest is to add this dependency:
+
+[source,xml]
+----
+<dependency>
+  <groupId>io.yupiik.uship</groupId>
+  <artifactId>jsonrpc-core</artifactId>
+  <version>${uship.version}</version>
+</dependency>
+----
+
+From here you can develop JSON-RPC endpoints.
+
+== Create JSON-RPC endpoints
+
+Creating a JSON-RPC endpoint is about marking a bean with the qualifier `@JsonRpc` and some method(s) with `@JsonRpcMethod`:
+
+[source,java]
+----
+@JsonRpc <1>
+@ApplicationScoped <2>
+public class MyEndpoints {
+    @JsonRpcMethod(name = "test1") <3>
+    public Foo test1(@JsonRpcParam final String in) { <4>
+        // ...
+    }
+}
+----
+<.> Defines the class as containing JSON-RPC methods,
+<.> Since the class will match a CDI bean, it can use any relevant scope. We strongly encourage you to use `@ApplicationScoped` if possible for performances and consistency but it is not required,
+<.> `@JsonRpcMethod` defines a method usable over JSON-RPC transport (a servlet by default). The `name` attribute must be unique per deployment and we highly recommend you to set the `documentation` attribute,
+<.> The method can then define its return type and inputs as any JSON-B friendly types. Inputs can be marked with `@JsonRpcParam` to set their `documentation`.
+
+TIP: the JSON-RPC implementation supports by position calls (parameters are passed in order) or names (`JsonRpcParam#value`). If not explicitly set, the name is taken from the parameter bytecode name. It is highly recommended to set `-parameters` to `javac` to get the same names than in the source code. Also take care that the order and names are then part of your contract.
+
+== Document JSON-RPC endpoints
+
+If fully described - `documentation` methods being set in annotations, you can generate your endpoint documentation using `jsonrpc-documentation` module and in particular `io.yupiik.uship.jsonrpc.doc.AsciidoctorJsonRpcDocumentationGenerator` class:
+
+[source,xml]
+----
+<plugin>
+  <groupId>org.codehaus.mojo</groupId>
+    <artifactId>exec-maven-plugin</artifactId>
+    <version>...</version>
+    <executions>
+      <execution> <1>
+        <id>api-asciidoc</id>
+        <phase>process-classes</phase>
+        <goals>
+            <goal>java</goal>
+        </goals>
+        <configuration>
+            <mainClass>io.yupiik.uship.jsonrpc.doc.AsciidoctorJsonRpcDocumentationGenerator</mainClass>
+            <includeProjectDependencies>true</includeProjectDependencies>
+            <arguments>
+                <argument>My JSON-RPC API</argument> <!-- document title -->
+                <argument>com.company.MyEndpoints1,com.company.MyEndpoints2,...</argument> <!-- classes -->
+                <argument>${project.build.directory}/generated-doc/api.adoc</argument> <!-- output -->
+            </arguments>
+        </configuration>
+      </execution>
+      <execution> <2>
+        <id>api-openrpc.json</id>
+        <phase>process-classes</phase>
+        <goals>
+            <goal>java</goal>
+        </goals>
+        <configuration>
+            <mainClass>io.yupiik.uship.jsonrpc.doc.OpenRPCGenerator</mainClass>
+            <includeProjectDependencies>true</includeProjectDependencies>
+            <arguments>
+                <argument>My JSON-RPC API</argument> <!-- OpenRPC title -->
+                <argument>com.company.MyEndpoints1,com.company.MyEndpoints2,...</argument> <!-- classes to use -->
+                <argument>${project.build.directory}/generated-doc/openrpc.json</argument> <!-- output -->
+                <argument>https://api.company.com/jsonrpc</argument> <!-- base -->
+                <argument>true</argument> <!-- formatted -->
+            </arguments>
+        </configuration>
+      </execution>
+    </executions>
+</plugin>
+----
+<.> Will generate a textual (Asciidoctor) documentation of your contract from the classes listed in the arguments,
+<.> Will generate an OpenRPC (JSON) contract from the classes listed in the arguments.
+
+== Going further
+
+It is possible to enrich the JSON-RPC protocol, in particular bulk request support, by reusing `io.yupiik.uship.jsonrpc.core.impl.JsonRpcHandler` class in your own endpoints.
+Typical examples are endpoint wrapping a set of request (sub methods), in a single transaction, endpoints propagating a state between method calls (like the second method will get the id generated in the first one), etc...

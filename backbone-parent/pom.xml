@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <parent>
+    <artifactId>uship</artifactId>
+    <groupId>io.yupiik.uship</groupId>
+    <version>1.0.0-SNAPSHOT</version>
+  </parent>
+  <modelVersion>4.0.0</modelVersion>
+
+  <artifactId>backbone-parent</artifactId>
+  <name>UShip :: Backbone</name>
+  <packaging>pom</packaging>
+
+  <modules>
+    <module>cdi-dependencies</module>
+    <module>backbone-owb</module>
+    <module>json-dependencies</module>
+    <module>backbone-johnzon</module>
+    <module>backbone-reflect</module>
+  </modules>
+</project>

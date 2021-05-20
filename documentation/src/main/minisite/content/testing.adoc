@@ -1,0 +1,68 @@
+= Uship Testing
+:minisite-index: 300
+:minisite-index-title: Testing
+:minisite-index-description: How to get test an µship application.
+:minisite-index-icon: vial
+:minisite-keywords: Uship, microservice, testing
+
+== Testing an UShip application
+
+Testing an UShip application just requires to launch a CDI container.
+By default we rely on `org.apache.openwebbeans:openwebbeans-junit5` to do so.
+It enables to start the container marking the test class with `@Cdi`:
+
+[source,java]
+----
+@Cdi <1>
+class MyTest {
+    @Inject <2>
+    @JsonRpc
+    private SomeJsonRpcController contoller;
+
+    @Test <3>
+    void doTest() {
+        // ...
+    }
+}
+----
+<.> Mark the test class to need a CDI SE container,
+<.> `@Cdi` makes the test instance injections aware,
+<.> Then simply write your tests as usual.
+
+TIP: `@Cdi` has some configuration options. One of the most interesting is to set `reusable = true`. It will enable to use the same container for all tests.
+Since, with this mode, all tests of the suite (configurable in surefire) must use the same flag, you can define a JUnit 5 stereotype:
+
+[source,java]
+----
+@Target(TYPE)
+@Retention(RUNTIME)
+@TestInstance(PER_CLASS)
+@Cdi(reusable = true)
+public @interface MyAppSupport {
+}
+----
+
+Now, instead of using `@Cdi`, you can use `@MyAppSupport` on test classes avoiding to miss a `reusable = true` configuration.
+It is also very useful to add extension to all tests at once, for example if you have some JPA enhancer to execute before the container starts or some entity spying to auto delete test data between test, you can add the extensions there:
+
+[source,java]
+----
+@Target(TYPE)
+@Retention(RUNTIME)
+@TestInstance(PER_CLASS)
+@Cdi(reusable = true)
+@ExtendWith(OpenJPATestEnhancer.class)
+@ExtendWith(AutoEntityDeletion.class)
+public @interface MyAppSupport {
+}
+----
+
+The test will then not change:
+
+[source,java]
+----
+@MyAppSupport
+class MyTest {
+    // same as before
+}
+----

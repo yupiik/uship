@@ -1,0 +1,49 @@
+= Getting Started
+:minisite-index: 100
+:minisite-index-title: Getting Started
+:minisite-index-description: How to get started with µship.
+:minisite-index-icon: play
+:minisite-keywords: Uship, microservice, getting started
+
+[abstract]
+Uship (µship) is a lightweight microservice stack for modern applications.
+
+== Pre-requisites
+
+. Ensure to use java >= 11
+. (Optional) Ensure to use a dependency manager such as Apache Maven/Gradle/SBT or Apache Ivy.
+
+TIP: using link:https://sdkman.io/[SDKMan] can greatly simplify the installation.
+
+== Development stack
+
+The goal of µShip is to promote and enable JSON-RPC development at scale.
+For that it provides a CDI-Servlet integration module known as `jsonrpc-core` module.
+
+However, µShip also provides all the underlying stack to make it functional such as:
+
+* An embedded Servlet container (Apache Tomcat),
+* JSON-P/JSON-B integration modules,
+* JSON-RPC API/implementation and documentation utilities.
+
+TIP: as of today, µShip does not go further - as providing a configuration/openmetrics/opentracing/JWT integration since these ones can easily be added using CDI libraries.
+It will probably be tackled in a few versions but was not a pre-requisite of the project.
+
+xref:development-stack.adoc[Read more.]
+
+== Deployment capabilities/integration
+
+By using CDI standalone (a.k.a. CDI SE) and an embedded Apache Tomcat, µShip enables to deliver application as:
+
+* Assemblies (just use `java -cp folder-with-dependencies-and-application-jars/*.jar com.app.YourMain` - or reuse µShip main),
+* Docker images using `jib-maven-plugin`.
+
+TIP: by using a flat classpath, µShip is perfectly compatible with java CDS which boosts a lot the startup in general, don't hesitate to set it up if you care to start in less than a second.
+
+xref:packaging.adoc[Read more.]
+
+== Testing
+
+Once again, by using a plain CDI base, testing is made easy and compatible with Apache OpenWebBeans tooling.
+
+xref:testing.adoc[Read more.]
