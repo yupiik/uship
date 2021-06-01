@@ -50,7 +50,7 @@ Here is a `pom.xml` template you can use to get started:
           <groupId>org.jetbrains.kotlin</groupId>
           <artifactId>*</artifactId>
         </exclusion>
-      </exclusion>
+      </exclusions>
     </dependency>
   </dependencies>
 
