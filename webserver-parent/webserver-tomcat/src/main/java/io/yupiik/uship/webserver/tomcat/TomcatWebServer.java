@@ -90,6 +90,9 @@ public class TomcatWebServer implements AutoCloseable {
         host.setName(configuration.getDefaultHost());
         tomcat.getEngine().addChild(host);
 
+        if (configuration.getTomcatCustomizers() != null) {
+            configuration.getTomcatCustomizers().forEach(c -> c.accept(tomcat));
+        }
         onTomcat(tomcat);
 
         try {
@@ -127,6 +130,9 @@ public class TomcatWebServer implements AutoCloseable {
         ctx.setClearReferencesThreadLocals(false);
         ctx.setClearReferencesRmiTargets(false);
 
+        if (configuration.getContextCustomizers() != null) {
+            configuration.getContextCustomizers().forEach(c -> c.accept(ctx));
+        }
         onContext(ctx);
         return ctx;
     }
