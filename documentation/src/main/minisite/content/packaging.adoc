@@ -9,6 +9,7 @@
 
 To launch UShip, you just have to launch a CDI SE container.
 Using default implementation - Apache OpenWebBeans - it can be done using the default `main(String...)`: `org.apache.openwebbeans.se.CDILauncher`.
+For the web server you can use `--openwebbeans.main uShipTomcatAwait` argument with `CDILauncher` to await Tomcat server and not quit immediately.
 
 Once you collected all dependencies to be able to build the application classpath, simply set this class a your main and your application will start.
 
