@@ -31,7 +31,6 @@
 
     <properties>
         <maven.compiler.java.version>11</maven.compiler.java.version>
-        <uship.version>${project.version}</uship.version>
 
         <documentation.title>Customer JSON-RPC API</documentation.title>
         <documentation.endpoints>io.yupiik.uship.samples.CustomerEndpoint</documentation.endpoints>
@@ -41,13 +40,14 @@
         <dependency>
             <groupId>io.yupiik.uship</groupId>
             <artifactId>jsonrpc-core</artifactId>
-            <version>${uship.version}</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>io.yupiik.uship</groupId>
             <artifactId>jsonrpc-documentation</artifactId>
-            <version>${uship.version}</version>
+            <version>${project.version}</version>
         </dependency>
+        <!-- inherited from parent
         <dependency>
             <groupId>io.yupiik.logging</groupId>
             <artifactId>yupiik-logging-jul</artifactId>
@@ -56,9 +56,9 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>5.8.0-M1</version>
             <scope>test</scope>
         </dependency>
+        -->
         <dependency>
             <groupId>org.apache.openwebbeans</groupId>
             <artifactId>openwebbeans-junit5</artifactId>
@@ -79,6 +79,7 @@
 
     <build>
         <plugins>
+            <!-- inherited from parent
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
@@ -110,6 +111,7 @@
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
+            -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
