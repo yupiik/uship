@@ -72,7 +72,7 @@
             <dependency>
                 <groupId>io.yupiik.uship</groupId>
                 <artifactId>bom</artifactId>
-                <version>${uship.version}</version>
+                <version>${project.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
