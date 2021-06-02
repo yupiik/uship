@@ -247,6 +247,7 @@ under the License.
             <exclude>**/*.slim</exclude>
             <exclude>**/*.xslt</exclude>
             <exclude>**/minisite/**</exclude>
+            <exclude>**/.m2/**</exclude>
           </excludes>
         </configuration>
       </plugin>
