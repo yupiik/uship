@@ -157,7 +157,20 @@ TIP: the JSON-RPC implementation supports by position calls (parameters are pass
 
 == Document JSON-RPC endpoints
 
-If fully described - `documentation` methods being set in annotations, you can generate your endpoint documentation using `jsonrpc-documentation` module and in particular `io.yupiik.uship.jsonrpc.doc.AsciidoctorJsonRpcDocumentationGenerator` class:
+If fully described - `documentation` methods being set in annotations, you can generate your endpoint documentation using `jsonrpc-documentation` module and in particular `io.yupiik.uship.jsonrpc.doc.AsciidoctorJsonRpcDocumentationGenerator` class.
+
+You have to add this dependency to your pom.xml:
+
+[source,xml]
+----
+<dependency>
+    <groupId>io.yupiik.uship</groupId>
+    <artifactId>jsonrpc-documentation</artifactId>
+    <version>${uship.version}</version>
+</dependency>
+----
+
+Then add new exec build plugin instructions:
 
 [source,xml]
 ----

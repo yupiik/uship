@@ -43,6 +43,7 @@
     <module>jsonrpc-parent</module>
     <module>bom</module>
     <module>documentation</module>
+    <module>samples</module>
   </modules>
 
   <dependencies>
