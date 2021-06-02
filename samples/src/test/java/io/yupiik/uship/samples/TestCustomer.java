@@ -25,8 +25,7 @@ import org.junit.jupiter.api.Test;
 import java.util.UUID;
 
 @Cdi
-public class TestCustomer {
-
+class TestCustomer {
     @Inject
     @JsonRpc
     private CustomerEndpoint customerEndpoint;

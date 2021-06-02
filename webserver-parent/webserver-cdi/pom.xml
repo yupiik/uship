@@ -41,6 +41,12 @@
       <groupId>${project.groupId}</groupId>
       <artifactId>webserver-tomcat</artifactId>
       <version>${project.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.tomcat</groupId>
+          <artifactId>tomcat-annotations-api</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <dependency>
