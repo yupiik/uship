@@ -27,6 +27,7 @@
   <name>UShip</name>
   <description>Simple JSON-RPC based stack for microservices.</description>
   <packaging>pom</packaging>
+  <url>https://yupiik.github.io/uship/</url>
 
   <properties>
     <maven.compiler.java.version>11</maven.compiler.java.version>
