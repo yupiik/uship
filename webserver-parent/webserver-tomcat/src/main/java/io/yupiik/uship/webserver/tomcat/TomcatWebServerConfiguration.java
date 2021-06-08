@@ -30,7 +30,7 @@ public class TomcatWebServerConfiguration {
     private String defaultHost = "localhost";
     private String accessLogPattern = "common";
     private List<ServletContainerInitializer> initializers = List.of();
-    private List<Consumer<Tomcat>> tomcatCustomizers = List.of();
+    private List<Consumer<Tomcat>> tomcatCustomizers = List.of(Tomcat::getConnector); // force init
     private List<Consumer<StandardContext>> contextCustomizers = List.of();
 
     public boolean isSkipUtf8Filter() {
