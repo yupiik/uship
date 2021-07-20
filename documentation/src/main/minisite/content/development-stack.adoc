@@ -38,7 +38,7 @@ Here is a `pom.xml` template you can use to get started:
     <dependency> <3>
       <groupId>io.yupiik.logging</groupId>
       <artifactId>yupiik-logging-jul</artifactId>
-      <version>1.0.0</version>
+      <version>1.0.1</version>
     </dependency>
     <dependency> <4>
       <groupId>org.junit.jupiter</groupId>
