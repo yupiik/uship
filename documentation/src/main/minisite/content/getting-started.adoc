@@ -48,8 +48,14 @@ Once again, by using a plain CDI base, testing is made easy and compatible with 
 
 xref:testing.adoc[Read more.]
 
-== HTTP Server configuration
+== HTTP Server
 
 Once again, by using a plain CDI base, testing is made easy and compatible with Apache OpenWebBeans tooling.
 
-xref:http.adoc[Read more.]
+xref:http-server.adoc[Read more.]
+
+== HTTP Client
+
+UShip extends the JVM `HttpClient` to provide a few more features and callbacks.
+
+xref:http-client.adoc[Read more.]

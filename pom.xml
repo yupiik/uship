@@ -43,6 +43,7 @@
     <module>bom</module>
     <module>documentation</module>
     <module>samples</module>
+    <module>httpclient-parent</module>
   </modules>
 
   <dependencies>
@@ -234,6 +235,8 @@ under the License.
             <adoc>DOUBLESLASH_STYLE</adoc>
           </mapping>
           <excludes>
+            <exclude>**/*.pem</exclude>
+            <exclude>**/*.p12</exclude>
             <exclude>**/*.txt</exclude>
             <exclude>**/*.xlsx</exclude>
             <exclude>**/*.idea</exclude>
