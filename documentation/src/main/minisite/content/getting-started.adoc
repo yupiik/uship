@@ -57,5 +57,6 @@ xref:http-server.adoc[Read more.]
 == HTTP Client
 
 UShip extends the JVM `HttpClient` to provide a few more features and callbacks.
+It also provides a Kubernetes client module which auto-setup a `HttpClient` from a POD.
 
 xref:http-client.adoc[Read more.]
