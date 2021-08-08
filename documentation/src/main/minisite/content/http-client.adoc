@@ -80,7 +80,7 @@ final var response = k8s.send(
         HttpRequest.newBuilder()
                 .GET()
                 .uri(URI.create(
-                    "https://kubernetes.api/api/v1/namespaces/" + this.configuration.getNamespace() + "/configmaps?" +
+                    "https://kubernetes.api/api/v1/namespaces/" + k8s.namespace().orElse("default") + "/configmaps?" +
                             "includeUninitialized=false&" +
                             "limit=1000&" +
                             "timeoutSeconds=600")
