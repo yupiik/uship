@@ -47,3 +47,9 @@ xref:packaging.adoc[Read more.]
 Once again, by using a plain CDI base, testing is made easy and compatible with Apache OpenWebBeans tooling.
 
 xref:testing.adoc[Read more.]
+
+== HTTP Server configuration
+
+Once again, by using a plain CDI base, testing is made easy and compatible with Apache OpenWebBeans tooling.
+
+xref:http.adoc[Read more.]

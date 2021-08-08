@@ -1,0 +1,99 @@
+= HTTP Server
+
+[abstract]
+Uship (µship) embed Tomcat in your application enabling you to fully control it with almost no abstraction.
+
+== Modes
+
+µship comes with two Tomcat modules:
+
+- `webserver-tomcat` which is a thin Apache Tomcat wrapper creating - by default - a ROOT context,
+- `webserver-cdi` which integrated `webserver-tomcat` with CDI.
+
+== Standalone mode
+
+The standalone mode (`webserver-tomcat`) is mainly about creating a `TomcatWebServerConfiguration` and instantiating a `TomcatWebServer`:
+
+[source,java]
+----
+// <1>
+final var configuration = new TomcatWebServerConfiguration();
+configuration.setPort(0); // random
+configuration.setInitializers(List.of((set, servletContext) -> // <2>
+servletContext.addServlet("test", new HttpServlet() {
+    @Override
+    protected void service(final HttpServletRequest req, final HttpServletResponse resp) throws IOException {
+        resp.getWriter().write("ok from servlet");
+    }
+}).addMapping("/test")));
+
+try (final var server = new TomcatWebServer(configuration).create()) { // <3>
+    // now configuration.getPort() contains the runtime port since it was requested to be random (0) // <4>
+
+    // use the webserver
+}
+----
+<.> Create a configuration instance,
+<.> You can bind any servlet, filter etc using initializers,
+<.> Create a server (`create` call is what starts the server) and don't forget to close is when no more needed (done with `try-with-resource` syntax there),
+<.> The port can be random using `0` in the original configuration, it will be updated after the startup of the server in this case.
+
+IMPORTANT: default Tomcat scanning (`@WebServlet` etc) is not enabled - you will see that with CDI it is rarely needed - but you can enable it adding a context customizer registering `ContextConfig`:
++
+[source,java]
+----
+context.addLifecycleListener(new ContextConfig());
+----
+
+== CDI Mode
+
+CDI mode is almost the same as standalone mode except:
+
+- You can (optional) produce `TomcatWebServerConfiguration` in CDI context:
++
+[source,java]
+----
+@Dependent
+public class TomcatConfigurationProducer {
+    // <1>
+    @Produces
+    @ApplicationScoped
+    public TomcatWebServerConfiguration tomcatWebServerConfiguration() {
+        final TomcatWebServerConfiguration tomcat = new TomcatWebServerConfiguration(configuration); // <2>
+        tomcat.setContextCustomizers(List.of(ctx -> { // <3>
+            // ...
+        }));
+        return tomcat;
+    }
+}
+----
+<.> It can be a standard subclass of the POJO `TomcatWebServerConfiguration` or like here a producer, in all cases it is recommended to use `@ApplicationScoped` even if not required to ensure the instance is shared between injection if you reuse it soewhere else (like in tests or in a servlet),
+<.> Create the configuration (same as standalone case), here te trick is generally to reuse the native configuration mecanism of the application (microprofile config for example),
+<.> Add a context customizer to customize the docbase, context name etc...
++
+- You can (optional) create `ServletContextInitializer`, `ContextCustomizer` and `TomcatCustomizer` beans (with `@Default` qualifier) which will automatically be injected in the `TomcatWebServerConfiguration`.
++
+[source,java]
+----
+@Dependent
+public class ServletRegistrations implements ServletContainerInitializer {
+    @Inject
+    private HealthServlet health;
+
+    @Inject
+    private MetricsServlet metrics;
+
+    @Override
+    public void onStartup(final Set<Class<?>> ignored, final ServletContext servletContext) {
+        final var metricsBinding = servletContext.addServlet("metrics", metrics);
+        metricsBinding.addMapping("/metrics");
+        metricsBinding.setLoadOnStartup(0);
+
+        final var healthBinding = servletContext.addServlet("health", health);
+        healthBinding.addMapping("/health");
+        healthBinding.setLoadOnStartup(0);
+    }
+}
+----
++
+TIP: no need of a `META-INF/services/jakarta.servlet.ServletContainerInitializer` file in this case, CDI is the registry used.
