@@ -3,15 +3,14 @@
 <body>
 
 <head>
-    <title>Getting Started</title>
+    <title>HTTP Server</title>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="A light microservice stack.">
     <meta name="author" content="Yupiik Minisite Generator">
     <meta name="generator" content="Yupiik Minisite Generator">
-    <meta name="keywords" content="Uship, microservice, getting started">
-
+    
     <link rel="shortcut icon" href="//www.yupiik.com/img/favicon.png">
 
     <link href="//fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,700,700i|Montserrat:300,400,500,700" rel="stylesheet">
@@ -66,69 +65,167 @@
             </ul>
         </div>
 
-        <div id="getting-started-html-container" class="container page-content getting-started-html">
+        <div id="http-html-container" class="container page-content http-html">
                         <div class="page-header">
-                <h1>Getting Started</h1>
+                <h1>HTTP Server</h1>
             </div>
             <div class="page-content-body">
                 <div id="preamble">
 <div class="sectionbody">
 <div class="quoteblock abstract">
 <blockquote>
-Uship (µship) is a lightweight microservice stack for modern applications.
+Uship (µship) embed Tomcat in your application enabling you to fully control it with almost no abstraction.
 </blockquote>
 </div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_pre_requisites">Pre-requisites</h2>
+<h2 id="_modes">Modes</h2>
 <div class="sectionbody">
-<div class="olist arabic">
-<ol class="arabic">
+<div class="paragraph">
+<p>µship comes with two Tomcat modules:</p>
+</div>
+<div class="ulist">
+<ul>
 <li>
-<p>Ensure to use java &gt;= 11</p>
+<p><code>webserver-tomcat</code> which is a thin Apache Tomcat wrapper creating - by default - a ROOT context,</p>
 </li>
 <li>
-<p>(Optional) Ensure to use a dependency manager such as Apache Maven/Gradle/SBT or Apache Ivy.</p>
+<p><code>webserver-cdi</code> which integrated <code>webserver-tomcat</code> with CDI.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_standalone_mode">Standalone mode</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The standalone mode (<code>webserver-tomcat</code>) is mainly about creating a <code>TomcatWebServerConfiguration</code> and instantiating a <code>TomcatWebServer</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">// <b class="conum">(1)</b>
+final var configuration = new TomcatWebServerConfiguration();
+configuration.setPort(0); // random
+configuration.setInitializers(List.of((set, servletContext) -&gt; // <b class="conum">(2)</b>
+servletContext.addServlet("test", new HttpServlet() {
+    @Override
+    protected void service(final HttpServletRequest req, final HttpServletResponse resp) throws IOException {
+        resp.getWriter().write("ok from servlet");
+    }
+}).addMapping("/test")));
+
+try (final var server = new TomcatWebServer(configuration).create()) { // <b class="conum">(3)</b>
+    // now configuration.getPort() contains the runtime port since it was requested to be random (0) // <b class="conum">(4)</b>
+
+    // use the webserver
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Create a configuration instance,</p>
+</li>
+<li>
+<p>You can bind any servlet, filter etc using initializers,</p>
+</li>
+<li>
+<p>Create a server (<code>create</code> call is what starts the server) and don&#8217;t forget to close is when no more needed (done with <code>try-with-resource</code> syntax there),</p>
+</li>
+<li>
+<p>The port can be random using <code>0</code> in the original configuration, it will be updated after the startup of the server in this case.</p>
 </li>
 </ol>
 </div>
-<div class="admonitionblock tip">
+<div class="admonitionblock important">
 <table>
 <tr>
 <td class="icon">
-<div class="title">Tip</div>
+<div class="title">Important</div>
 </td>
 <td class="content">
-using <a href="https://sdkman.io/">SDKMan</a> can greatly simplify the installation.
+default Tomcat scanning (<code>@WebServlet</code> etc) is not enabled - you will see that with CDI it is rarely needed - but you can enable it adding a context customizer registering <code>ContextConfig</code>:
 </td>
 </tr>
 </table>
 </div>
+<div class="paragraph">
+<p>+</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">context.addLifecycleListener(new ContextConfig());</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_development_stack">Development stack</h2>
+<h2 id="_cdi_mode">CDI Mode</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>The goal of µShip is to promote and enable JSON-RPC development at scale.
-For that it provides a CDI-Servlet integration module known as <code>jsonrpc-core</code> module.</p>
-</div>
-<div class="paragraph">
-<p>However, µShip also provides all the underlying stack to make it functional such as:</p>
+<p>CDI mode is almost the same as standalone mode except:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>An embedded Servlet container (Apache Tomcat),</p>
+<p>You can (optional) produce <code>TomcatWebServerConfiguration</code> in CDI context:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Dependent
+public class TomcatConfigurationProducer {
+    // <b class="conum">(1)</b>
+    @Produces
+    @ApplicationScoped
+    public TomcatWebServerConfiguration tomcatWebServerConfiguration() {
+        final TomcatWebServerConfiguration tomcat = new TomcatWebServerConfiguration(configuration); // <b class="conum">(2)</b>
+        tomcat.setContextCustomizers(List.of(ctx -&gt; { // <b class="conum">(3)</b>
+            // ...
+        }));
+        return tomcat;
+    }
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>It can be a standard subclass of the POJO <code>TomcatWebServerConfiguration</code> or like here a producer, in all cases it is recommended to use <code>@ApplicationScoped</code> even if not required to ensure the instance is shared between injection if you reuse it soewhere else (like in tests or in a servlet),</p>
 </li>
 <li>
-<p>JSON-P/JSON-B integration modules,</p>
+<p>Create the configuration (same as standalone case), here te trick is generally to reuse the native configuration mecanism of the application (microprofile config for example),</p>
 </li>
 <li>
-<p>JSON-RPC API/implementation and documentation utilities.</p>
+<p>Add a context customizer to customize the docbase, context name etc&#8230;&#8203;</p>
 </li>
-</ul>
+</ol>
+</div>
+</li>
+<li>
+<p>You can (optional) create <code>ServletContextInitializer</code>, <code>ContextCustomizer</code> and <code>TomcatCustomizer</code> beans (with <code>@Default</code> qualifier) which will automatically be injected in the <code>TomcatWebServerConfiguration</code>.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Dependent
+public class ServletRegistrations implements ServletContainerInitializer {
+    @Inject
+    private HealthServlet health;
+
+    @Inject
+    private MetricsServlet metrics;
+
+    @Override
+    public void onStartup(final Set&lt;Class&lt;?&gt;&gt; ignored, final ServletContext servletContext) {
+        final var metricsBinding = servletContext.addServlet("metrics", metrics);
+        metricsBinding.addMapping("/metrics");
+        metricsBinding.setLoadOnStartup(0);
+
+        final var healthBinding = servletContext.addServlet("health", health);
+        healthBinding.addMapping("/health");
+        healthBinding.setLoadOnStartup(0);
+    }
+}</code></pre>
+</div>
 </div>
 <div class="admonitionblock tip">
 <table>
@@ -137,69 +234,13 @@ For that it provides a CDI-Servlet integration module known as <code>jsonrpc-cor
 <div class="title">Tip</div>
 </td>
 <td class="content">
-as of today, µShip does not go further - as providing a configuration/openmetrics/opentracing/JWT integration since these ones can easily be added using CDI libraries.
-It will probably be tackled in a few versions but was not a pre-requisite of the project.
+no need of a <code>META-INF/services/jakarta.servlet.ServletContainerInitializer</code> file in this case, CDI is the registry used.
 </td>
 </tr>
 </table>
 </div>
-<div class="paragraph">
-<p><a href="development-stack.html">Read more.</a></p>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_deployment_capabilitiesintegration">Deployment capabilities/integration</h2>
-<div class="sectionbody">
-<div class="paragraph">
-<p>By using CDI standalone (a.k.a. CDI SE) and an embedded Apache Tomcat, µShip enables to deliver application as:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Assemblies (just use <code>java -cp folder-with-dependencies-and-application-jars/*.jar com.app.YourMain</code> - or reuse µShip main),</p>
-</li>
-<li>
-<p>Docker images using <code>jib-maven-plugin</code>.</p>
 </li>
 </ul>
-</div>
-<div class="admonitionblock tip">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Tip</div>
-</td>
-<td class="content">
-by using a flat classpath, µShip is perfectly compatible with java CDS which boosts a lot the startup in general, don&#8217;t hesitate to set it up if you care to start in less than a second.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p><a href="packaging.html">Read more.</a></p>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_testing">Testing</h2>
-<div class="sectionbody">
-<div class="paragraph">
-<p>Once again, by using a plain CDI base, testing is made easy and compatible with Apache OpenWebBeans tooling.</p>
-</div>
-<div class="paragraph">
-<p><a href="testing.html">Read more.</a></p>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_http_server_configuration">HTTP Server configuration</h2>
-<div class="sectionbody">
-<div class="paragraph">
-<p>Once again, by using a plain CDI base, testing is made easy and compatible with Apache OpenWebBeans tooling.</p>
-</div>
-<div class="paragraph">
-<p><a href="http.html">Read more.</a></p>
 </div>
 </div>
 </div>
