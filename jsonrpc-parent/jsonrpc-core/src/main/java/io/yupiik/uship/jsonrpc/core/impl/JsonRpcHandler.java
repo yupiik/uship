@@ -45,7 +45,7 @@ import static java.util.concurrent.CompletableFuture.completedFuture;
 @ApplicationScoped
 public class JsonRpcHandler {
     public interface Constants {
-        String REQUEST_METHOD_ATTRIBUTE = "resassist.jsonrpc.method";
+        String REQUEST_METHOD_ATTRIBUTE = "yupiik.jsonrpc.method";
     }
 
     private final Logger logger = Logger.getLogger(getClass().getName());
