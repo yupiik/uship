@@ -202,7 +202,7 @@ public class JsonRpcMethodRegistry {
     }
 
     protected OpenRPC doCreateOpenRpc() {
-        final var info = new OpenRPC.Info("1.0", "Resassist API", null, null, null);
+        final var info = doCreateOpenRpcInfo();
         final var components = new OpenRPC.Components(new TreeMap<>(), new TreeMap<>(), new TreeMap<>(), new TreeMap<>());
 
         final var schemaProcessor = new SchemaProcessor();
@@ -222,43 +222,51 @@ public class JsonRpcMethodRegistry {
             }
         };
         final var methods = handlers.entrySet().stream()
-                .map(handler -> {
-                    final var reg = handler.getValue().registration();
-                    final var result = new OpenRPC.Value(
-                            handler.getKey() + "__result",
-                            null,
-                            schemaProcessor.mapSchemaFromClass(reg.returnedType(), componentsSchemaProcessorCache),
-                            null, null);
-
-                    final var errors = reg.exceptionMappings() != null ?
-                            reg.exceptionMappings().stream()
-                                    .map(it -> new OpenRPC.ErrorValue(
-                                            it.code(),
-                                            it.documentation(),
-                                            it.types() != null && !it.types().isEmpty() ?
-                                                    schemaProcessor.mapSchemaFromClass(it.types().iterator().next(), componentsSchemaProcessorCache)
-                                                    : null))
-                                    .collect(toList()) : null;
-                    final var params = reg.parameters() != null ?
-                            reg.parameters().stream()
-                                    .filter(p -> p.type() != HttpServletRequest.class && p.type() != HttpServletResponse.class)
-                                    .map(it -> new OpenRPC.Value(
-                                            it.name(), it.documentation(),
-                                            schemaProcessor.mapSchemaFromClass(it.type(), componentsSchemaProcessorCache),
-                                            it.required(), null))
-                                    .collect(toList()) : null;
-                    return new OpenRPC.RpcMethod(
-                            handler.getKey(), List.of(), reg.documentation(), reg.documentation(), List.of(), params,
-                            result, null, null, errors, List.of(), "either", null);
-                })
+                .map(handler -> toRpcMethod(schemaProcessor, componentsSchemaProcessorCache, handler))
                 .collect(toList());
-        return new OpenRPC(
-                "1.2.4", info,
-                List.of(new OpenRPC.Server(
-                        "api",
-                        getBaseUrl(),
-                        "API server", Map.of())),
-                methods, components);
+        return new OpenRPC("1.2.4", info, toServers(), methods, components);
+    }
+
+    protected List<OpenRPC.Server> toServers() {
+        return List.of(new OpenRPC.Server(
+                "api",
+                getBaseUrl(),
+                "JSON-RPC API", Map.of()));
+    }
+
+    protected OpenRPC.RpcMethod toRpcMethod(final SchemaProcessor schemaProcessor, final SchemaProcessor.InMemoryCache componentsSchemaProcessorCache,
+                                          final Map.Entry<String, JsonRpcMethodRegistration> handler) {
+        final var reg = handler.getValue().registration();
+        final var result = new OpenRPC.Value(
+                handler.getKey() + "__result",
+                null,
+                schemaProcessor.mapSchemaFromClass(reg.returnedType(), componentsSchemaProcessorCache),
+                null, null);
+
+        final var errors = reg.exceptionMappings() != null ?
+                reg.exceptionMappings().stream()
+                        .map(it -> new OpenRPC.ErrorValue(
+                                it.code(),
+                                it.documentation(),
+                                it.types() != null && !it.types().isEmpty() ?
+                                        schemaProcessor.mapSchemaFromClass(it.types().iterator().next(), componentsSchemaProcessorCache)
+                                        : null))
+                        .collect(toList()) : null;
+        final var params = reg.parameters() != null ?
+                reg.parameters().stream()
+                        .filter(p -> p.type() != HttpServletRequest.class && p.type() != HttpServletResponse.class)
+                        .map(it -> new OpenRPC.Value(
+                                it.name(), it.documentation(),
+                                schemaProcessor.mapSchemaFromClass(it.type(), componentsSchemaProcessorCache),
+                                it.required(), null))
+                        .collect(toList()) : null;
+        return new OpenRPC.RpcMethod(
+                handler.getKey(), List.of(), reg.documentation(), reg.documentation(), List.of(), params,
+                result, null, null, errors, List.of(), "either", null);
+    }
+
+    protected OpenRPC.Info doCreateOpenRpcInfo() {
+        return new OpenRPC.Info("1.0", "JSON-RPC", null, null, null);
     }
 
     protected String getBaseUrl() {
