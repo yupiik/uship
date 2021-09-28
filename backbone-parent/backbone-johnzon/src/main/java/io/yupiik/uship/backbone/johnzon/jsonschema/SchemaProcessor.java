@@ -128,6 +128,7 @@ public class SchemaProcessor {
                 final Schema items = new Schema();
                 items.setType(Schema.SchemaType.object);
                 items.setProperties(new HashMap<>());
+                schema.setItems(items);
             } else if (isStringable(model)) {
                 schema.setType(Schema.SchemaType.string);
                 schema.setNullable(true);

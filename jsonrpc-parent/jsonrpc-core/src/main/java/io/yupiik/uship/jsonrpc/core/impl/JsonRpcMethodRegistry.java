@@ -235,12 +235,12 @@ public class JsonRpcMethodRegistry {
     }
 
     protected OpenRPC.RpcMethod toRpcMethod(final SchemaProcessor schemaProcessor, final SchemaProcessor.InMemoryCache componentsSchemaProcessorCache,
-                                          final Map.Entry<String, JsonRpcMethodRegistration> handler) {
+                                            final Map.Entry<String, JsonRpcMethodRegistration> handler) {
         final var reg = handler.getValue().registration();
         final var result = new OpenRPC.Value(
                 handler.getKey() + "__result",
                 null,
-                schemaProcessor.mapSchemaFromClass(reg.returnedType(), componentsSchemaProcessorCache),
+                schemaProcessor.mapSchemaFromClass(unwrapType(reg.returnedType()), componentsSchemaProcessorCache),
                 null, null);
 
         final var errors = reg.exceptionMappings() != null ?
@@ -263,6 +263,20 @@ public class JsonRpcMethodRegistry {
         return new OpenRPC.RpcMethod(
                 handler.getKey(), List.of(), reg.documentation(), reg.documentation(), List.of(), params,
                 result, null, null, errors, List.of(), "either", null);
+    }
+
+    private Type unwrapType(final Type returnedType) {
+        if (ParameterizedType.class.isInstance(returnedType)) {
+            final var pt = ParameterizedType.class.cast(returnedType);
+            if (Class.class.isInstance(pt.getRawType())) {
+                final var raw = Class.class.cast(pt.getRawType());
+                if (CompletionStage.class.isAssignableFrom(raw) || Optional.class == raw) {
+                    return pt.getActualTypeArguments()[0];
+                }
+            }
+            return pt;
+        }
+        return returnedType;
     }
 
     protected OpenRPC.Info doCreateOpenRpcInfo() {
