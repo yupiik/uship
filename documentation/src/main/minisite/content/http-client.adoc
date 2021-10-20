@@ -93,3 +93,77 @@ final var response = k8s.send(
 IMPORTANT: as you can see, there is no need to pass the token to the request, it is done under the hood by the `KubernetesClient`.
 The other important note is that `https://kubernetes.api` is automatically replaced by the `conf.getMaster()` value.
 This enables your code to stay more straight forward in general but if you pass them, the client will handle it properly too.
+
+== JSON-RPC client
+
+As a JSON-RPC server companion UShip also provides a JSON-RPC client.
+
+[source,xml]
+----
+<dependency>
+  <groupId>io.yupiik.uship</groupId>
+  <artifactId>jsonrpc-client</artifactId>
+  <version>${uship.version}</version>
+</dependency>
+----
+
+The minimum configuration is to provide the JSON-RPC endpoint:
+
+[source,java]
+----
+final var client = new JsonRpcClient(new JsonRpcClientConfiguration("http://app.service.com/jsonrpc"));
+----
+
+But more is customizable in `JsonRpcClientConfiguration` and a common initialization would look like:
+
+[source,java]
+----
+@Produces
+@ApplicationScoped
+public ExtendedHttpClient jsonRpcHttpClient() {
+    return ...; // create it as usual
+}
+
+public void releaseHttpClient(@Disposes final ExtendedHttpClient client) {
+    client.close();
+}
+
+@Produces
+@ApplicationScoped
+public JsonRpcClient jsonRpcClient(
+            // external config
+            @ConfigProperty("jsonrpc.base") final String base,
+            @ConfigProperty("jsonrpc.authorizationheader") final String auth,
+            // from uship json in general
+            final JsonBuilderFactory jbf, final Jsonb jsonb,
+            // created in the app (other producer)
+            final ExtendedHttpClient client) {
+    return new JsonRpcClient(new JsonRpcClientConfiguration(base + "/jsonrpc"))
+        // all these setters are optional but enables to use controlled instances (vs implicit) and optimize/customize the behavior/mem/security
+        .setJsonBuilderFactory(jbf)
+        .setJsonb(jsonb)
+        .setHttpClient(client) // enables to customize the async thread pool for example (highly encourage for executeAsync usage)
+        .setRequestCustomizer(req -> req.header("authorization", auth));
+}
+
+public void releaseJsonRpcClient(@Disposes final JsonRpcClient client) {
+    client.close();
+}
+----
+
+Then you can simply use it in your application:
+
+[source,java]
+----
+@ApplicationScoped
+public class MyService {
+    @Inject
+    private JsonRpcClient client;
+
+    public CompletionStage<Customer> findCustomer(final String id) {
+        return client.executeAsync("app-customer-find-by-id", Map.of("id", id))
+            // todo: better error handling if needed
+            .thenApply(r -> r.asSingle().as(Customer.class));
+    }
+}
+----
