@@ -31,5 +31,6 @@
   <modules>
     <module>jsonrpc-core</module>
     <module>jsonrpc-documentation</module>
+    <module>jsonrpc-client</module>
   </modules>
 </project>

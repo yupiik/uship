@@ -55,50 +55,51 @@ public class AsciidoctorJsonRpcDocumentationGenerator extends BaseJsonRpcDocumen
             output.println("== JSON-RPC Methods\n");
             super.doRun(forRegistrations, output);
             if (!schemas.isEmpty()) {
-                final var schemaProcessor = new SchemaProcessor(true, true);
                 final var cache = new SchemaProcessor.InMemoryCache();
-                schemas.stream()
-                        .sorted(comparing(Class::getName))
-                        .forEach(c -> schemaProcessor.mapSchemaFromClass(c, cache));
+                try (final var schemaProcessor = new SchemaProcessor(true, true)) {
+                    schemas.stream()
+                            .sorted(comparing(Class::getName))
+                            .forEach(c -> schemaProcessor.mapSchemaFromClass(c, cache));
+                }
                 final var visited = new HashSet<Schema>();
                 if (!cache.getSchemas().isEmpty()) {
                     output.println("== Model Schemas\n");
                 }
                 cache.getSchemas().entrySet().stream()
                         .sorted(comparing(s -> s.getKey().getName())).forEach(e -> {
-                    final Schema schema = e.getValue();
-                    if (schema.getTitle() == null) {
-                        schema.setTitle(e.getKey().getName());
-                    }
-                    if (schema.getDescription() == null) {
-                        schema.setDescription("");
-                    }
-                    final var jsonSchema2Adoc = new JsonSchema2Adoc(
-                            "===", schema,
-                            s -> s.getRef() != null || !visited.add(s)) {
-                        @Override
-                        public void prepare(final Schema in) {
-                            if (in == null) {
-                                super.prepare(in);
-                                return;
+                            final Schema schema = e.getValue();
+                            if (schema.getTitle() == null) {
+                                schema.setTitle(e.getKey().getName());
                             }
-                            if (in.getTitle() == null) { // quite unlikely
-                                in.setTitle("Model");
+                            if (schema.getDescription() == null) {
+                                schema.setDescription("");
                             }
-                            if (in.getDescription() == null) {
-                                in.setDescription("");
+                            final var jsonSchema2Adoc = new JsonSchema2Adoc(
+                                    "===", schema,
+                                    s -> s.getRef() != null || !visited.add(s)) {
+                                @Override
+                                public void prepare(final Schema in) {
+                                    if (in == null) {
+                                        super.prepare(in);
+                                        return;
+                                    }
+                                    if (in.getTitle() == null) { // quite unlikely
+                                        in.setTitle("Model");
+                                    }
+                                    if (in.getDescription() == null) {
+                                        in.setDescription("");
+                                    }
+                                    super.prepare(in);
+                                }
+                            };
+                            jsonSchema2Adoc.prepare(null);
+                            final String content = jsonSchema2Adoc.get().toString().trim();
+                            if (!content.isEmpty()) {
+                                output.println("[#" + schema.getId().replaceFirst("#/definitions/", "").replace('.', '_') + ']');
+                                output.println(content);
+                                output.println();
                             }
-                            super.prepare(in);
-                        }
-                    };
-                    jsonSchema2Adoc.prepare(null);
-                    final String content = jsonSchema2Adoc.get().toString().trim();
-                    if (!content.isEmpty()) {
-                        output.println("[#" + schema.getId().replaceFirst("#/definitions/", "").replace('.', '_') + ']');
-                        output.println(content);
-                        output.println();
-                    }
-                });
+                        });
             }
         } finally {
             schemas.clear();

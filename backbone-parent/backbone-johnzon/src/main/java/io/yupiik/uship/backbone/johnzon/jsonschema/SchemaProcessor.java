@@ -15,6 +15,8 @@
  */
 package io.yupiik.uship.backbone.johnzon.jsonschema;
 
+import io.yupiik.uship.backbone.johnzon.jsonschema.api.JsonSchema;
+import io.yupiik.uship.backbone.johnzon.jsonschema.api.JsonSchemaMetadata;
 import io.yupiik.uship.backbone.reflect.Reflections;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonNumber;
@@ -22,6 +24,9 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonString;
 import jakarta.json.JsonStructure;
 import jakarta.json.JsonValue;
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
+import jakarta.json.bind.JsonbConfig;
 import jakarta.json.bind.annotation.JsonbProperty;
 import jakarta.json.bind.annotation.JsonbTransient;
 
@@ -45,29 +50,35 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiPredicate;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
+import static java.util.Optional.of;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toMap;
 
-// simplified from geronimo-openapi
-// todo: introduce a @Schema annotation
-public class SchemaProcessor {
+public class SchemaProcessor implements AutoCloseable {
     private final Class<?> persistenceCapable;
     private final boolean setClassAsTitle;
     private final boolean useReflectionForDefaults;
+    private final Function<String, Schema> schemaReader;
 
     public SchemaProcessor() {
-        this(false, false);
+        this(false, false, null);
     }
 
     public SchemaProcessor(final boolean setClassAsTitle, final boolean useReflectionForDefaults) {
+        this(setClassAsTitle, useReflectionForDefaults, null);
+    }
+
+    public SchemaProcessor(final boolean setClassAsTitle, final boolean useReflectionForDefaults, final Function<String, Schema> schemaReader) {
         this.setClassAsTitle = setClassAsTitle;
         this.useReflectionForDefaults = useReflectionForDefaults;
+        this.schemaReader = schemaReader == null ? new LazySchemaReader() : schemaReader;
 
         Class<?> pc = null;
         try {
@@ -134,7 +145,10 @@ public class SchemaProcessor {
                 schema.setNullable(true);
             } else {
                 final Class<?> from = Class.class.cast(model);
-                if (from.isEnum()) {
+                final var provided = from.getAnnotation(JsonSchema.class);
+                if (provided != null) {
+                    forward(schemaReader.apply(provided.value()), schema);
+                } else if (from.isEnum()) {
                     schema.setId(from.getName().replace('.', '_').replace('$', '_'));
                     schema.setType(Schema.SchemaType.string);
                     schema.setEnumeration(asList(from.getEnumConstants()));
@@ -257,12 +271,10 @@ public class SchemaProcessor {
     }
 
     protected void fillMeta(final Field f, final Schema schema) {
-        /* todo:
-        ofNullable(f.getAnnotation(Doc.class)).ifPresent(s -> {
+        ofNullable(f.getAnnotation(JsonSchemaMetadata.class)).ifPresent(s -> {
             of(s.title()).filter(it -> !it.isEmpty()).ifPresent(schema::setTitle);
             of(s.description()).filter(it -> !it.isEmpty()).ifPresent(schema::setDescription);
         });
-         */
         ofNullable(f.getAnnotation(Deprecated.class)).map(it -> true).ifPresent(schema::setDeprecated);
     }
 
@@ -356,6 +368,58 @@ public class SchemaProcessor {
 
     private String decapitalize(final String name) {
         return Character.toLowerCase(name.charAt(0)) + name.substring(1);
+    }
+
+    @Override
+    public void close() {
+        if (AutoCloseable.class.isInstance(schemaReader)) {
+            try {
+                AutoCloseable.class.cast(schemaReader).close();
+            } catch (final RuntimeException e) {
+                throw e;
+            } catch (final Exception e) {
+                throw new IllegalStateException(e);
+            }
+        }
+    }
+
+    private void forward(final Schema loaded, final Schema schema) {
+        schema.setDefinitions(loaded.getDefinitions());
+        schema.setType(loaded.getType());
+        schema.setProperties(loaded.getProperties());
+        schema.setAdditionalProperties(loaded.getAdditionalProperties());
+        schema.setAllOf(loaded.getAllOf());
+        schema.setAnyOf(loaded.getAnyOf());
+        schema.setDefaultValue(loaded.getDefaultValue());
+        schema.setDeprecated(loaded.getDeprecated());
+        schema.setDescription(loaded.getDescription());
+        schema.setEnumeration(loaded.getEnumeration());
+        schema.setExample(loaded.getExample());
+        schema.setExclusiveMaximum(loaded.getExclusiveMaximum());
+        schema.setExclusiveMinimum(loaded.getExclusiveMinimum());
+        schema.setFormat(loaded.getFormat());
+        schema.setItems(loaded.getItems());
+        schema.setMaxItems(loaded.getMaxItems());
+        schema.setMaxLength(loaded.getMaxLength());
+        schema.setMaxProperties(loaded.getMaxProperties());
+        schema.setMinItems(loaded.getMinItems());
+        schema.setMinLength(loaded.getMinLength());
+        schema.setMinProperties(loaded.getMinProperties());
+        schema.setMaximum(loaded.getMaximum());
+        schema.setMinimum(loaded.getMinimum());
+        schema.setMultipleOf(loaded.getMultipleOf());
+        schema.setNot(loaded.getNot());
+        schema.setNullable(loaded.getNullable());
+        schema.setOneOf(loaded.getOneOf());
+        schema.setPattern(loaded.getPattern());
+        schema.setReadOnly(loaded.getReadOnly());
+        schema.setRef(loaded.getRef());
+        schema.setId(loaded.getId());
+        schema.setSchema(loaded.getSchema());
+        schema.setRequired(loaded.getRequired());
+        schema.setTitle(loaded.getTitle());
+        schema.setUniqueItems(loaded.getUniqueItems());
+        schema.setWriteOnly(loaded.getWriteOnly());
     }
 
     /*
@@ -582,6 +646,29 @@ public class SchemaProcessor {
 
         public boolean isCreated() {
             return created;
+        }
+    }
+
+    private static class LazySchemaReader implements Function<String, Schema>, AutoCloseable {
+        private volatile Jsonb jsonb;
+
+        @Override
+        public Schema apply(final String s) {
+            if (jsonb == null) {
+                synchronized (this) {
+                    if (jsonb == null) {
+                        jsonb = JsonbBuilder.create(new JsonbConfig().setProperty("johnzon.skip-cdi", true));
+                    }
+                }
+            }
+            return jsonb.fromJson(s, Schema.class);
+        }
+
+        @Override
+        public void close() throws Exception {
+            if (jsonb != null) {
+                jsonb.close();
+            }
         }
     }
 }

@@ -205,26 +205,27 @@ public class JsonRpcMethodRegistry {
         final var info = doCreateOpenRpcInfo();
         final var components = new OpenRPC.Components(new TreeMap<>(), new TreeMap<>(), new TreeMap<>(), new TreeMap<>());
 
-        final var schemaProcessor = new SchemaProcessor();
-        final var componentsSchemaProcessorCache = new SchemaProcessor.InMemoryCache() {
-            @Override
-            public void onSchemaCreated(final Class<?> type, final Schema schema) {
-                super.onSchemaCreated(type, schema);
-                final String ref = findRef(type);
-                if (ref != null) {
-                    components.getSchemas().putIfAbsent(ref.substring(getRefPrefix().length()), schema);
+        try (final var schemaProcessor = new SchemaProcessor(false, false, v -> jsonb.fromJson(v, Schema.class))) {
+            final var componentsSchemaProcessorCache = new SchemaProcessor.InMemoryCache() {
+                @Override
+                public void onSchemaCreated(final Class<?> type, final Schema schema) {
+                    super.onSchemaCreated(type, schema);
+                    final String ref = findRef(type);
+                    if (ref != null) {
+                        components.getSchemas().putIfAbsent(ref.substring(getRefPrefix().length()), schema);
+                    }
                 }
-            }
 
-            @Override
-            protected String getRefPrefix() {
-                return "#/components/schemas/";
-            }
-        };
-        final var methods = handlers.entrySet().stream()
-                .map(handler -> toRpcMethod(schemaProcessor, componentsSchemaProcessorCache, handler))
-                .collect(toList());
-        return new OpenRPC("1.2.4", info, toServers(), methods, components);
+                @Override
+                protected String getRefPrefix() {
+                    return "#/components/schemas/";
+                }
+            };
+            final var methods = handlers.entrySet().stream()
+                    .map(handler -> toRpcMethod(schemaProcessor, componentsSchemaProcessorCache, handler))
+                    .collect(toList());
+            return new OpenRPC("1.2.4", info, toServers(), methods, components);
+        }
     }
 
     protected List<OpenRPC.Server> toServers() {
