@@ -15,6 +15,8 @@
  */
 package io.yupiik.uship.jsonrpc.client;
 
+import jakarta.json.JsonArray;
+
 import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpResponse;
@@ -32,13 +34,26 @@ public class JsonRpcClient implements AutoCloseable {
         this.protocol = new JsonRpcClientConverter(clientConfiguration);
     }
 
+    public JsonRpcResponse execute(final JsonArray bulkRequest) throws IOException, InterruptedException {
+        return protocol.toJsonRpcResponse(httpClient.send(protocol.toHttpRequest(bulkRequest), HttpResponse.BodyHandlers.ofString(UTF_8)));
+    }
+
     public JsonRpcResponse execute(final String method, final Object params) throws IOException, InterruptedException {
         return protocol.toJsonRpcResponse(httpClient.send(protocol.toHttpRequest(method, params), HttpResponse.BodyHandlers.ofString(UTF_8)));
+    }
+
+    public CompletableFuture<JsonRpcResponse> executeAsync(final JsonArray bulkRequest) {
+        return httpClient.sendAsync(protocol.toHttpRequest(bulkRequest), HttpResponse.BodyHandlers.ofString(UTF_8))
+                .thenApply(protocol::toJsonRpcResponse);
     }
 
     public CompletableFuture<JsonRpcResponse> executeAsync(final String method, final Object params) {
         return httpClient.sendAsync(protocol.toHttpRequest(method, params), HttpResponse.BodyHandlers.ofString(UTF_8))
                 .thenApply(protocol::toJsonRpcResponse);
+    }
+
+    public JsonRpcClientConverter getProtocol() {
+        return protocol;
     }
 
     @Override

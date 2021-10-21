@@ -16,6 +16,7 @@
 package io.yupiik.uship.jsonrpc.client;
 
 import com.sun.net.httpserver.HttpServer;
+import jakarta.json.Json;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -58,7 +59,7 @@ class JsonRpcClientTest {
     }
 
     @AfterAll
-    static void stopServer() throws Exception {
+    static void stopServer() {
         client.close();
         server.stop(0);
     }
@@ -77,7 +78,9 @@ class JsonRpcClientTest {
 
     @Test
     void array() throws IOException, InterruptedException {
-        final var response = client.execute("array", Map.of("foo", "bar"));
+        final var response = client.execute(Json.createArrayBuilder()
+                .add(client.getProtocol().toJsonRpcRequest("array", Map.of("foo", "bar")))
+                .build());
         assertFalse(response.isSingle());
         assertTrue(response.isArray());
 

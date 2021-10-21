@@ -167,3 +167,17 @@ public class MyService {
     }
 }
 ----
+
+=== Bulk handling
+
+Bulk is handled relying on the JSON-RPC protocol accessible from the client - or directly if you prefer:
+
+[source,java]
+----
+final var protocol = client.getProtocol();
+final var response = client.execute(protocol.getJsonBuilderFactory().createArrayBuilder()
+        .add(protocol.toJsonRpcRequest("m1", Map.of("foo", "bar")))
+        .add(protocol.toJsonRpcRequest("m2", new M2Params()))
+        .add(protocol.toJsonRpcRequest("m3", null))
+        .build());
+----
