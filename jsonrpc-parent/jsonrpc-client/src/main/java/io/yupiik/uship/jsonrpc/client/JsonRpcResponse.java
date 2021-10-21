@@ -36,11 +36,11 @@ public class JsonRpcResponse {
         this.jsonb = jsonb;
     }
 
-    public HttpResponse<String> getHttpResponse() {
+    public HttpResponse<String> httpResponse() {
         return httpResponse;
     }
 
-    public JsonValue getDelegate() {
+    public JsonValue delegate() {
         return delegate;
     }
 

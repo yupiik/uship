@@ -32,7 +32,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class JsonRpcClientTest {
     private static HttpServer server;
-    private static JsonRpcClient client;
+    private static JsonRpcClient rootClient;
+    private static JsonRpcClient.Sync client;
 
     @BeforeAll
     static void startServer() throws IOException {
@@ -55,12 +56,13 @@ class JsonRpcClientTest {
             exchange.close();
         });
         server.start();
-        client = new JsonRpcClient(new JsonRpcClientConfiguration("http://localhost:" + server.getAddress().getPort() + "/jsonrpc"));
+        rootClient = new JsonRpcClient(new JsonRpcClientConfiguration("http://localhost:" + server.getAddress().getPort() + "/jsonrpc"));
+        client = rootClient.sync();
     }
 
     @AfterAll
     static void stopServer() {
-        client.close();
+        rootClient.close();
         server.stop(0);
     }
 
@@ -79,7 +81,7 @@ class JsonRpcClientTest {
     @Test
     void array() throws IOException, InterruptedException {
         final var response = client.execute(Json.createArrayBuilder()
-                .add(client.getProtocol().toJsonRpcRequest("array", Map.of("foo", "bar")))
+                .add(client.protocol().toJsonRpcRequest("array", Map.of("foo", "bar")))
                 .build());
         assertFalse(response.isSingle());
         assertTrue(response.isArray());

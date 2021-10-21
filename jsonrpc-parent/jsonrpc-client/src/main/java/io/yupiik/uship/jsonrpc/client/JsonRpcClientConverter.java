@@ -51,7 +51,7 @@ public class JsonRpcClientConverter implements AutoCloseable {
         this.endpoint = URI.create(requireNonNull(clientConfiguration.getEndpoint(), "no endpoint set"));
     }
 
-    public JsonBuilderFactory getJsonBuilderFactory() {
+    public JsonBuilderFactory jsonBuilderFactory() {
         return jsonBuilderFactory;
     }
 

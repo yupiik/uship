@@ -146,6 +146,12 @@ public JsonRpcClient jsonRpcClient(
         .setRequestCustomizer(req -> req.header("authorization", auth));
 }
 
+@Produces
+@ApplicationScoped // to be able to @Inject JsonRpcClient.Sync sync; directory - or similarly for async
+public JsonRpcClient.Sync jsonRpcClient(final JsonRpcClient root) {
+    return root.sync();
+}
+
 public void releaseJsonRpcClient(@Disposes final JsonRpcClient client) {
     client.close();
 }
@@ -161,7 +167,7 @@ public class MyService {
     private JsonRpcClient client;
 
     public CompletionStage<Customer> findCustomer(final String id) {
-        return client.executeAsync("app-customer-find-by-id", Map.of("id", id))
+        return client.async().execute("app-customer-find-by-id", Map.of("id", id))
             // todo: better error handling if needed
             .thenApply(r -> r.asSingle().as(Customer.class));
     }
@@ -174,8 +180,8 @@ Bulk is handled relying on the JSON-RPC protocol accessible from the client - or
 
 [source,java]
 ----
-final var protocol = client.getProtocol();
-final var response = client.execute(protocol.getJsonBuilderFactory().createArrayBuilder()
+final var protocol = client.protocol();
+final var response = client.sync().execute(protocol.jsonBuilderFactory().createArrayBuilder()
         .add(protocol.toJsonRpcRequest("m1", Map.of("foo", "bar")))
         .add(protocol.toJsonRpcRequest("m2", new M2Params()))
         .add(protocol.toJsonRpcRequest("m3", null))
