@@ -33,7 +33,7 @@
     <xbean.version>4.20</xbean.version>
     <owb.version>2.0.23</owb.version>
     <tomcat.version>10.0.10</tomcat.version>
-    <johnzon.version>1.2.14</johnzon.version>
+    <johnzon.version>1.2.15</johnzon.version>
   </properties>
 
   <modules>
