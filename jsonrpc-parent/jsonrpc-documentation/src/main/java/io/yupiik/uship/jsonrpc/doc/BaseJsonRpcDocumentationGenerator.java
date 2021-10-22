@@ -61,7 +61,7 @@ public abstract class BaseJsonRpcDocumentationGenerator implements Runnable {
         output.println(forRegistrations.map(this::toString).sorted().collect(joining("\n")));
     }
 
-    private Stream<Registration> forRegistrations() {
+    protected Stream<Registration> forRegistrations() {
         return endpoints.stream().flatMap(this::toRegistration);
     }
 

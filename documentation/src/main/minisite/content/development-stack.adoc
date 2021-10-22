@@ -219,6 +219,11 @@ Then add new exec build plugin instructions:
 <.> Will generate a textual (Asciidoctor) documentation of your contract from the classes listed in the arguments,
 <.> Will generate an OpenRPC (JSON) contract from the classes listed in the arguments.
 
+== Postman collection for JSON-RPC endpoint
+
+Similarly to Asciidoctor documentation you can generate a collection of JSON-RPC requests using `PostmanCollectionGenerator` main.
+It takes an OpenRPC file (you can get it with `openrpc` method) and output a Postman collection file.
+
 == Going further
 
 It is possible to enrich the JSON-RPC protocol, in particular bulk request support, by reusing `io.yupiik.uship.jsonrpc.core.impl.JsonRpcHandler` class in your own endpoints.
