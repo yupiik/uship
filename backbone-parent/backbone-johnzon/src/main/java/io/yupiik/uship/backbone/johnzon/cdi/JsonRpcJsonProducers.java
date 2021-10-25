@@ -38,6 +38,7 @@ public class JsonRpcJsonProducers {
                 .withProvider(provider)
                 .withConfig(new JsonbConfig()
                         .withPropertyOrderStrategy(PropertyOrderStrategy.LEXICOGRAPHICAL)
+                        .setProperty("johnzon.failOnMissingCreatorValues", Boolean.getBoolean("johnzon.failOnMissingCreatorValues")) // for records
                         .setProperty("johnzon.deduplicateObjects", false))
                 .build();
     }
