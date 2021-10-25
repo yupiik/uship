@@ -15,6 +15,7 @@
  */
 package io.yupiik.uship.jsonrpc.client;
 
+import io.yupiik.uship.backbone.johnzon.Object2JsonSerializer;
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonBuilderFactory;
@@ -39,6 +40,7 @@ public class JsonRpcClientConverter implements AutoCloseable {
     private final URI endpoint;
     private final Jsonb jsonb;
     private final JsonBuilderFactory jsonBuilderFactory;
+    private final Object2JsonSerializer toJsonValue;
     private boolean closeJsonb;
 
     public JsonRpcClientConverter(final JsonRpcClientConfiguration clientConfiguration) {
@@ -49,6 +51,7 @@ public class JsonRpcClientConverter implements AutoCloseable {
         });
         this.jsonBuilderFactory = ofNullable(clientConfiguration.getJsonBuilderFactory()).orElseGet(() -> Json.createBuilderFactory(Map.of()));
         this.endpoint = URI.create(requireNonNull(clientConfiguration.getEndpoint(), "no endpoint set"));
+        this.toJsonValue = new Object2JsonSerializer(jsonb);
     }
 
     public JsonBuilderFactory jsonBuilderFactory() {
@@ -97,7 +100,7 @@ public class JsonRpcClientConverter implements AutoCloseable {
         if (params != null) {
             basePayload.add("params", JsonValue.class.isInstance(params) ?
                     JsonValue.class.cast(params) :
-                    jsonb.fromJson(jsonb.toJson(params), JsonValue.class));
+                    toJsonValue.apply(params));
         }
         return basePayload;
     }

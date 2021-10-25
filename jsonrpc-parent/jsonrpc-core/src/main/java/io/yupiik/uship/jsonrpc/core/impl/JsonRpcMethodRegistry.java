@@ -15,6 +15,7 @@
  */
 package io.yupiik.uship.jsonrpc.core.impl;
 
+import io.yupiik.uship.backbone.johnzon.Object2JsonSerializer;
 import io.yupiik.uship.backbone.johnzon.jsonschema.Schema;
 import io.yupiik.uship.backbone.johnzon.jsonschema.SchemaProcessor;
 import io.yupiik.uship.backbone.reflect.Reflections;
@@ -95,8 +96,10 @@ public class JsonRpcMethodRegistry {
     private Instance<Object> jsonRpcInstances;
 
     private OpenRPC openRPC;
+    private Object2JsonSerializer toJsonValue;
 
     public void init(@Observes @Initialized(ApplicationScoped.class) final Object init) {
+        toJsonValue = new Object2JsonSerializer(jsonb);
         jsonRpcInstances.forEach(this::registerMethodFromService);
         registerOpenRPCMethod("openrpc");
         openRPC = doCreateOpenRpc();
@@ -374,7 +377,7 @@ public class JsonRpcMethodRegistry {
                 return v -> v == null ? null : (Boolean.TRUE.equals(v) ? JsonValue.TRUE : JsonValue.FALSE);
             }
         }
-        return v -> v == null ? null : jsonb.fromJson(jsonb.toJson(v), JsonValue.class);
+        return v -> v == null ? null : toJsonValue.apply(v);
     }
 
     private Object doInvoke(final Function<Object[], Object> invoker,

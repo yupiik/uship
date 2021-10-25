@@ -15,9 +15,11 @@
  */
 package io.yupiik.uship.jsonrpc.core.impl;
 
+import io.yupiik.uship.backbone.johnzon.Object2JsonSerializer;
 import io.yupiik.uship.jsonrpc.core.lang.Tuple2;
 import io.yupiik.uship.jsonrpc.core.protocol.JsonRpcException;
 import io.yupiik.uship.jsonrpc.core.protocol.Response;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.json.JsonObject;
@@ -55,6 +57,13 @@ public class JsonRpcHandler {
 
     @Inject
     private JsonRpcMethodRegistry registry;
+
+    private Object2JsonSerializer toJsonValue;
+
+    @PostConstruct
+    private void init() {
+        toJsonValue = new Object2JsonSerializer(jsonb);
+    }
 
     public JsonStructure readRequest(final Reader reader) throws IOException {
         try (final var in = reader) {
@@ -121,7 +130,7 @@ public class JsonRpcHandler {
                     jsonRpcException.getCode(), re.getMessage(),
                     data == null || JsonValue.class.isInstance(data) ?
                             JsonValue.class.cast(data) :
-                            jsonb.fromJson(jsonb.toJson(data), JsonValue.class));
+                            toJsonValue.apply(data));
         } else {
             errorResponse = new Response.ErrorResponse(-2, re.getMessage(), null);
         }
