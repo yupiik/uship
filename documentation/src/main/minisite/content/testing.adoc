@@ -17,7 +17,7 @@ It enables to start the container marking the test class with `@Cdi`:
 class MyTest {
     @Inject <2>
     @JsonRpc
-    private SomeJsonRpcController contoller;
+    private SomeJsonRpcController controller;
 
     @Test <3>
     void doTest() {
