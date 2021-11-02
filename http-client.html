@@ -18,7 +18,7 @@
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/asciidoctor.js/1.5.5-5/css/asciidoctor.min.css" integrity="sha512-kI7tn5cuEg16kMeXnYmg8rEJPxbxzEM7Gsr191iQdLDevFBLXPCSU9aZWSVuP61tMZWU3nBAR1cJ7SmXnOGLZw==" crossorigin="anonymous" />
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.3/css/bootstrap.min.css" integrity="sha512-oc9+XSs1H243/FRN9Rw62Fn8EtxjEYWHXRvjS43YtueEewbS6ObfXcJNyohjHqVKFPoXXUxwc+q1K7Dee6vv9g==" crossorigin="anonymous" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/styles/vs2015.min.css" integrity="sha512-w8aclkBlN3Ha08SMwFKXFJqhSUx2qlvTBFLLelF8sm4xQnlg64qmGB/A6pBIKy0W8Bo51yDMDtQiPLNRq1WMcQ==" crossorigin="anonymous" />
-    <link id="theme-style" rel="stylesheet" href="//yupiik.github.io/uship/css/theme.css?v=0.0.2-SNAPSHOT">
+    <link id="theme-style" rel="stylesheet" href="//yupiik.github.io/uship/css/theme.css?v=1.0.0">
     
 </head>
     <header class="header fixed-top">
@@ -225,6 +225,109 @@ This enables your code to stay more straight forward in general but if you pass 
 </div>
 </div>
 </div>
+<div class="sect1">
+<h2 id="_json_rpc_client">JSON-RPC client</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>As a JSON-RPC server companion UShip also provides a JSON-RPC client.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="xml" class="language-xml hljs">&lt;dependency&gt;
+  &lt;groupId&gt;io.yupiik.uship&lt;/groupId&gt;
+  &lt;artifactId&gt;jsonrpc-client&lt;/artifactId&gt;
+  &lt;version&gt;${uship.version}&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The minimum configuration is to provide the JSON-RPC endpoint:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">final var client = new JsonRpcClient(new JsonRpcClientConfiguration("http://app.service.com/jsonrpc"));</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>But more is customizable in <code>JsonRpcClientConfiguration</code> and a common initialization would look like:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Produces
+@ApplicationScoped
+public ExtendedHttpClient jsonRpcHttpClient() {
+    return ...; // create it as usual
+}
+
+public void releaseHttpClient(@Disposes final ExtendedHttpClient client) {
+    client.close();
+}
+
+@Produces
+@ApplicationScoped
+public JsonRpcClient jsonRpcClient(
+            // external config
+            @ConfigProperty("jsonrpc.base") final String base,
+            @ConfigProperty("jsonrpc.authorizationheader") final String auth,
+            // from uship json in general
+            final JsonBuilderFactory jbf, final Jsonb jsonb,
+            // created in the app (other producer)
+            final ExtendedHttpClient client) {
+    return new JsonRpcClient(new JsonRpcClientConfiguration(base + "/jsonrpc"))
+        // all these setters are optional but enables to use controlled instances (vs implicit) and optimize/customize the behavior/mem/security
+        .setJsonBuilderFactory(jbf)
+        .setJsonb(jsonb)
+        .setHttpClient(client) // enables to customize the async thread pool for example (highly encourage for executeAsync usage)
+        .setRequestCustomizer(req -&gt; req.header("authorization", auth));
+}
+
+@Produces
+@ApplicationScoped // to be able to @Inject JsonRpcClient.Sync sync; directory - or similarly for async
+public JsonRpcClient.Sync jsonRpcClient(final JsonRpcClient root) {
+    return root.sync();
+}
+
+public void releaseJsonRpcClient(@Disposes final JsonRpcClient client) {
+    client.close();
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Then you can simply use it in your application:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@ApplicationScoped
+public class MyService {
+    @Inject
+    private JsonRpcClient client;
+
+    public CompletionStage&lt;Customer&gt; findCustomer(final String id) {
+        return client.async().execute("app-customer-find-by-id", Map.of("id", id))
+            // todo: better error handling if needed
+            .thenApply(r -&gt; r.asSingle().as(Customer.class));
+    }
+}</code></pre>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_bulk_handling">Bulk handling</h3>
+<div class="paragraph">
+<p>Bulk is handled relying on the JSON-RPC protocol accessible from the client - or directly if you prefer:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">final var protocol = client.protocol();
+final var response = client.sync().execute(protocol.jsonBuilderFactory().createArrayBuilder()
+        .add(protocol.toJsonRpcRequest("m1", Map.of("foo", "bar")))
+        .add(protocol.toJsonRpcRequest("m2", new M2Params()))
+        .add(protocol.toJsonRpcRequest("m3", null))
+        .build());</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
                 
             </div>
         </div>
@@ -277,7 +380,7 @@ This enables your code to stay more straight forward in general but if you pass 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/json.min.js" integrity="sha512-37sW1XqaJmseHAGNg4N4Y01u6g2do6LZL8tsziiL5CMXGy04Th65OXROw2jeDeXLo5+4Fsx7pmhEJJw77htBFg==" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/dockerfile.min.js" integrity="sha512-eRNl3ty7GOJPBN53nxLgtSSj2rkYj5/W0Vg0MFQBw8xAoILeT6byOogENHHCRRvHil4pKQ/HbgeJ5DOwQK3SJA==" crossorigin="anonymous"></script>
     <script>if (!(window.minisite || {}).skipHighlightJs) { hljs.highlightAll(); }</script>
-    <script src="//yupiik.github.io/uship/js/minisite.js?v=0.0.2-SNAPSHOT"></script>
+    <script src="//yupiik.github.io/uship/js/minisite.js?v=1.0.0"></script>
     <script>$('.page-content-body').generatedNavMenu();</script>
     <script>
             document.querySelector('div.site-logo > a').href =
