@@ -44,6 +44,7 @@
     <module>documentation</module>
     <module>samples</module>
     <module>httpclient-parent</module>
+    <module>persistence</module>
   </modules>
 
   <dependencies>
