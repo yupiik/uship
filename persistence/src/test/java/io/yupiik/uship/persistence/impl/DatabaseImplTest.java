@@ -37,7 +37,6 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class DatabaseImplTest {
-    // todo
     @Test
     @EnableH2
     void findAll(final DataSource dataSource) throws SQLException {
@@ -58,6 +57,28 @@ class DatabaseImplTest {
 
         // asserts
         assertEquals(entities, all);
+    }
+
+    @Test
+    @EnableH2
+    void findWithBinding(final DataSource dataSource) throws SQLException {
+        final Database database = init(dataSource);
+
+        final var entities = new ArrayList<MyFlatEntity>();
+        for (int i = 0; i < 3; i++) { // seed data
+            final var instance = new MyFlatEntity();
+            instance.name = "test_" + i;
+            database.insert(instance);
+            entities.add(instance);
+        }
+        // query
+        final var all = database.query(MyFlatEntity.class, "select name, id, age from FLAT_ENTITY where name = ?", b -> b.bind("test_1"));
+
+        // cleanup
+        entities.forEach(database::delete);
+
+        // asserts
+        assertEquals(entities.subList(1, 2), all);
     }
 
     @Test
