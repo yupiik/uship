@@ -48,6 +48,12 @@ public interface Database {
 
     int[] batch(String sql, Iterator<Consumer<StatementBinder>> binders);
 
+    <T> int[] batchInsert(Class<T> type, Iterator<T> instances);
+
+    <T> int[] batchUpdate(Class<T> type, Iterator<T> instances);
+
+    <T> int[] batchDelete(Class<T> type, Iterator<T> instances);
+
     /**
      * @param type      entity type.
      * @param resultSet resultset positionned at the row to map (next() already called).

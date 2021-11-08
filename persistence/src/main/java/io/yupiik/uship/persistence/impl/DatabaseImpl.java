@@ -20,9 +20,9 @@ import io.yupiik.uship.persistence.api.Entity;
 import io.yupiik.uship.persistence.api.PersistenceException;
 import io.yupiik.uship.persistence.api.StatementBinder;
 import io.yupiik.uship.persistence.api.bootstrap.Configuration;
-import io.yupiik.uship.persistence.impl.query.StatementBinderImpl;
 import io.yupiik.uship.persistence.impl.query.QueryCompiler;
 import io.yupiik.uship.persistence.impl.query.QueryKey;
+import io.yupiik.uship.persistence.impl.query.StatementBinderImpl;
 import io.yupiik.uship.persistence.impl.translation.DefaultTranslation;
 import io.yupiik.uship.persistence.impl.translation.H2Translation;
 import io.yupiik.uship.persistence.impl.translation.MySQLTranslation;
@@ -105,6 +105,63 @@ public class DatabaseImpl implements Database {
                 stmt.reset();
             }
             return stmt.getPreparedStatement().executeBatch();
+        } catch (final SQLException ex) {
+            throw new PersistenceException(ex);
+        }
+    }
+
+    @Override
+    public <T> int[] batchInsert(final Class<T> type, final Iterator<T> instances) {
+        requireNonNull(type, "no type set");
+        requireNonNull(instances, "no instances set");
+        final var model = getEntityImpl(type);
+        try (final var connection = datasource.getConnection();
+             final var stmt = new StatementBinderImpl(this, model.getInsertQuery(), connection)) {
+            final var preparedStatement = stmt.getPreparedStatement();
+            while (instances.hasNext()) {
+                model.onInsert(instances.next(), preparedStatement);
+                preparedStatement.addBatch();
+                stmt.reset();
+            }
+            return preparedStatement.executeBatch();
+        } catch (final SQLException ex) {
+            throw new PersistenceException(ex);
+        }
+    }
+
+    @Override
+    public <T> int[] batchUpdate(final Class<T> type, final Iterator<T> instances) {
+        requireNonNull(type, "no type set");
+        requireNonNull(instances, "no instances set");
+        final var model = getEntityImpl(type);
+        try (final var connection = datasource.getConnection();
+             final var stmt = new StatementBinderImpl(this, model.getUpdateQuery(), connection)) {
+            final var preparedStatement = stmt.getPreparedStatement();
+            while (instances.hasNext()) {
+                model.onUpdate(instances.next(), preparedStatement);
+                preparedStatement.addBatch();
+                stmt.reset();
+            }
+            return preparedStatement.executeBatch();
+        } catch (final SQLException ex) {
+            throw new PersistenceException(ex);
+        }
+    }
+
+    @Override
+    public <T> int[] batchDelete(final Class<T> type, final Iterator<T> instances) {
+        requireNonNull(type, "no type set");
+        requireNonNull(instances, "no instances set");
+        final var model = getEntityImpl(type);
+        try (final var connection = datasource.getConnection();
+             final var stmt = new StatementBinderImpl(this, model.getDeleteQuery(), connection)) {
+            final var preparedStatement = stmt.getPreparedStatement();
+            while (instances.hasNext()) {
+                model.onDelete(instances.next(), preparedStatement);
+                preparedStatement.addBatch();
+                stmt.reset();
+            }
+            return preparedStatement.executeBatch();
         } catch (final SQLException ex) {
             throw new PersistenceException(ex);
         }
