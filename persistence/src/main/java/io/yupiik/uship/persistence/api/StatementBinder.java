@@ -17,13 +17,13 @@ package io.yupiik.uship.persistence.api;
 
 import java.util.function.Consumer;
 
-public interface QueryBinder {
-    Consumer<QueryBinder> NONE = q -> {
+public interface StatementBinder {
+    Consumer<StatementBinder> NONE = q -> {
     };
 
-    QueryBinder bind(Class<?> type, Object instance);
+    StatementBinder bind(Class<?> type, Object instance);
 
-    default QueryBinder bind(Object instance) {
+    default StatementBinder bind(Object instance) {
         return bind(instance.getClass(), instance);
     }
 }

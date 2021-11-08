@@ -18,8 +18,9 @@ package io.yupiik.uship.persistence.impl;
 import io.yupiik.uship.persistence.api.Database;
 import io.yupiik.uship.persistence.api.Entity;
 import io.yupiik.uship.persistence.api.PersistenceException;
-import io.yupiik.uship.persistence.api.QueryBinder;
+import io.yupiik.uship.persistence.api.StatementBinder;
 import io.yupiik.uship.persistence.api.bootstrap.Configuration;
+import io.yupiik.uship.persistence.impl.query.StatementBinderImpl;
 import io.yupiik.uship.persistence.impl.query.QueryCompiler;
 import io.yupiik.uship.persistence.impl.query.QueryKey;
 import io.yupiik.uship.persistence.impl.translation.DefaultTranslation;
@@ -45,7 +46,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 import static java.util.Locale.ROOT;
 import static java.util.Objects.requireNonNull;
@@ -79,15 +79,32 @@ public class DatabaseImpl implements Database {
     }
 
     @Override
-    public <T> List<T> query(final Class<T> type, final String sql, final Consumer<QueryBinder> binders) {
+    public <T> List<T> query(final Class<T> type, final String sql, final Consumer<StatementBinder> binder) {
         requireNonNull(type, "can't query without a projection");
         requireNonNull(sql, "can't query without a query");
         try (final var connection = datasource.getConnection();
              final var query = queryCompiler.getOrCreate(new QueryKey<>(type, sql)).apply(connection)) {
-            Stream.of(binders).forEach(b -> b.accept(query));
+            binder.accept(query);
             try (final var rset = query.getPreparedStatement().executeQuery()) {
                 return mapAll(type, rset);
             }
+        } catch (final SQLException ex) {
+            throw new PersistenceException(ex);
+        }
+    }
+
+    @Override
+    public int[] batch(final String sql, final Iterator<Consumer<StatementBinder>> binders) {
+        requireNonNull(binders, "can't bind without binders");
+        requireNonNull(sql, "can't execute bulk without a statement");
+        try (final var connection = datasource.getConnection();
+             final var stmt = new StatementBinderImpl(this, sql, connection)) {
+            while (binders.hasNext()) {
+                binders.next().accept(stmt);
+                stmt.getPreparedStatement().addBatch();
+                stmt.reset();
+            }
+            return stmt.getPreparedStatement().executeBatch();
         } catch (final SQLException ex) {
             throw new PersistenceException(ex);
         }

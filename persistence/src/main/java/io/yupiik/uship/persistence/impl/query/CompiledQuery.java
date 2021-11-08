@@ -37,7 +37,7 @@ public class CompiledQuery<T> {
         return database;
     }
 
-    public QueryBinderImpl apply(final Connection connection) throws SQLException {
-        return new QueryBinderImpl(this, connection);
+    public StatementBinderImpl apply(final Connection connection) throws SQLException {
+        return new StatementBinderImpl(database, key.getSql(), connection);
     }
 }

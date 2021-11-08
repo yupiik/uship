@@ -18,7 +18,7 @@ package io.yupiik.uship.persistence.impl;
 import io.yupiik.uship.persistence.api.Column;
 import io.yupiik.uship.persistence.api.Database;
 import io.yupiik.uship.persistence.api.Id;
-import io.yupiik.uship.persistence.api.QueryBinder;
+import io.yupiik.uship.persistence.api.StatementBinder;
 import io.yupiik.uship.persistence.api.Table;
 import io.yupiik.uship.persistence.api.bootstrap.Configuration;
 import io.yupiik.uship.persistence.api.lifecycle.OnInsert;
@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.StringJoiner;
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -50,7 +51,7 @@ class DatabaseImplTest {
             entities.add(instance);
         }
         // query
-        final var all = database.query(MyFlatEntity.class, "select name, id, age from FLAT_ENTITY order by name", QueryBinder.NONE);
+        final var all = database.query(MyFlatEntity.class, "select name, id, age from FLAT_ENTITY order by name", StatementBinder.NONE);
 
         // cleanup
         entities.forEach(database::delete);
@@ -79,6 +80,37 @@ class DatabaseImplTest {
 
         // asserts
         assertEquals(entities.subList(1, 2), all);
+    }
+
+    @Test
+    @EnableH2
+    void batch(final DataSource dataSource) throws SQLException {
+        final Database database = init(dataSource);
+
+        final var entities = new ArrayList<MyFlatEntity>();
+        for (int i = 0; i < 3; i++) { // seed data
+            final var instance = new MyFlatEntity();
+            instance.id = "test_" + i;
+            instance.name = instance.id;
+            entities.add(instance);
+        }
+
+        assertArrayEquals(
+                new int[]{1, 1, 1},
+                database.batch(
+                        "insert into FLAT_ENTITY(id, age, name) values(?, ?, ?)",
+                        entities.stream()
+                                .map(it -> (Consumer<StatementBinder>) binder -> {
+                                    binder.bind(String.class, it.id);
+                                    binder.bind(int.class, it.age);
+                                    binder.bind(String.class, it.name);
+                                })
+                                .iterator()));
+
+        // check all was insert by batch
+        final var all = database.query(MyFlatEntity.class, "select name, id, age from FLAT_ENTITY order by name", StatementBinder.NONE);
+        entities.forEach(database::delete);
+        assertEquals(entities, all);
     }
 
     @Test

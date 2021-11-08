@@ -16,25 +16,25 @@
 package io.yupiik.uship.persistence.impl.query;
 
 import io.yupiik.uship.persistence.api.PersistenceException;
-import io.yupiik.uship.persistence.api.QueryBinder;
+import io.yupiik.uship.persistence.api.StatementBinder;
 import io.yupiik.uship.persistence.impl.DatabaseImpl;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
-public class QueryBinderImpl implements QueryBinder, AutoCloseable {
+public class StatementBinderImpl implements StatementBinder, AutoCloseable {
     private final DatabaseImpl database;
     private final PreparedStatement preparedStatement;
     private int index = 1;
 
-    public QueryBinderImpl(final CompiledQuery parent, final Connection connection) throws SQLException {
-        this.database = parent.getDatabase();
-        this.preparedStatement = connection.prepareStatement(parent.getKey().getSql());
+    public StatementBinderImpl(final DatabaseImpl database, final String sql, final Connection connection) throws SQLException {
+        this.database = database;
+        this.preparedStatement = connection.prepareStatement(sql);
     }
 
     @Override
-    public QueryBinderImpl bind(final Class<?> type, final Object instance) {
+    public StatementBinderImpl bind(final Class<?> type, final Object instance) {
         try {
             database.doBind(preparedStatement, index++, instance, type);
         } catch (final SQLException e) {
@@ -45,6 +45,10 @@ public class QueryBinderImpl implements QueryBinder, AutoCloseable {
 
     public PreparedStatement getPreparedStatement() {
         return preparedStatement;
+    }
+
+    public void reset() {
+        index = 1;
     }
 
     @Override
