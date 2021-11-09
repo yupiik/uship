@@ -19,7 +19,7 @@
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/asciidoctor.js/1.5.5-5/css/asciidoctor.min.css" integrity="sha512-kI7tn5cuEg16kMeXnYmg8rEJPxbxzEM7Gsr191iQdLDevFBLXPCSU9aZWSVuP61tMZWU3nBAR1cJ7SmXnOGLZw==" crossorigin="anonymous" />
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.3/css/bootstrap.min.css" integrity="sha512-oc9+XSs1H243/FRN9Rw62Fn8EtxjEYWHXRvjS43YtueEewbS6ObfXcJNyohjHqVKFPoXXUxwc+q1K7Dee6vv9g==" crossorigin="anonymous" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/styles/vs2015.min.css" integrity="sha512-w8aclkBlN3Ha08SMwFKXFJqhSUx2qlvTBFLLelF8sm4xQnlg64qmGB/A6pBIKy0W8Bo51yDMDtQiPLNRq1WMcQ==" crossorigin="anonymous" />
-    <link id="theme-style" rel="stylesheet" href="//yupiik.github.io/uship/css/theme.css?v=1.0.0">
+    <link id="theme-style" rel="stylesheet" href="//yupiik.github.io/uship/css/theme.css?v=1.0.1-SNAPSHOT">
     
 </head>
     <header class="header fixed-top">
@@ -378,6 +378,76 @@ It takes an OpenRPC file (you can get it with <code>openrpc</code> method) and o
 </div>
 </div>
 <div class="sect1">
+<h2 id="_persistence">Persistence</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Since UShip is mainly CDI based, it will be compatible with any kind of persistence Layer from SQL to NoSQL.
+However, for common simple cases, we ship a small JDBC mapper in our <code>io.yupiik.uship:persistence</code> module.</p>
+</div>
+<div class="paragraph">
+<p>Its scope is not to replace JPA but for simple cases to just provide a very light ORB.
+It only supports flat mapping - relationships must be managed by your which also means no magic or lazy query ;) - and transactions are managed through the <code>DataSource</code>.
+It works if the <code>Connection</code> is in autocommit mode or if you handle the commit through a transactional interceptor for example.</p>
+</div>
+<div class="paragraph">
+<p>The entry point is the <code>Database.of(configuration)</code> factory then all operations are available on the <code>database</code> instance.</p>
+</div>
+<div class="paragraph">
+<p>Here some examples:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">final var database = Database.of(new Configuration().setDataSource(dataSource));
+final var entity = database.getOrCreateEntity(MyFlatEntity.class);
+final var ddl = entity.ddl();
+// execute the statement on a Connection to create the table
+
+final var entity = ...;
+database.insert(entity);
+final var found = database.findById(MyEntity.class, "myid");
+database.update(entity);
+database.delete(entity);</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Mapping is a simple as:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Table("MY_ENTITY")
+public class MyEntity {
+    @Id
+    private String id;
+
+    @Column // mark the field as persistent
+    private String name;
+
+    @Column(name = "SIMPLE_AGE") // rename the field
+    private int age;
+
+    @OnInsert
+    private void onInsert() {
+        id = MyIDFactory.create(); // any custom way to create an ID like an UUID (recommended)
+    }
+
+    @OnUpdate
+    private void onUpdate() {
+        // no-op
+    }
+
+    @OnDelete
+    private void onDelete() {
+        // no-op
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For more advanced cases you can use <code>query</code> and <code>batch</code> methods from the <code>Database</code> instance.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
 <h2 id="_going_further">Going further</h2>
 <div class="sectionbody">
 <div class="paragraph">
@@ -438,7 +508,7 @@ Typical examples are endpoint wrapping a set of request (sub methods), in a sing
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/json.min.js" integrity="sha512-37sW1XqaJmseHAGNg4N4Y01u6g2do6LZL8tsziiL5CMXGy04Th65OXROw2jeDeXLo5+4Fsx7pmhEJJw77htBFg==" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/dockerfile.min.js" integrity="sha512-eRNl3ty7GOJPBN53nxLgtSSj2rkYj5/W0Vg0MFQBw8xAoILeT6byOogENHHCRRvHil4pKQ/HbgeJ5DOwQK3SJA==" crossorigin="anonymous"></script>
     <script>if (!(window.minisite || {}).skipHighlightJs) { hljs.highlightAll(); }</script>
-    <script src="//yupiik.github.io/uship/js/minisite.js?v=1.0.0"></script>
+    <script src="//yupiik.github.io/uship/js/minisite.js?v=1.0.1-SNAPSHOT"></script>
     <script>$('.page-content-body').generatedNavMenu();</script>
     <script>
             document.querySelector('div.site-logo > a').href =
