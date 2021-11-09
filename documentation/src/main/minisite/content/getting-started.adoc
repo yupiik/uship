@@ -60,3 +60,9 @@ UShip extends the JVM `HttpClient` to provide a few more features and callbacks.
 It also provides a Kubernetes client module which auto-setup a `HttpClient` from a POD.
 
 xref:http-client.adoc[Read more.]
+
+== Persistence
+
+UShip provides a convenient JDBC light mapper.
+
+xref:development-stack.adoc#_persistence[Read more.]

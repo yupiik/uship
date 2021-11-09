@@ -224,6 +224,7 @@ Then add new exec build plugin instructions:
 Similarly to Asciidoctor documentation you can generate a collection of JSON-RPC requests using `PostmanCollectionGenerator` main.
 It takes an OpenRPC file (you can get it with `openrpc` method) and output a Postman collection file.
 
+[[_persistence]]
 == Persistence
 
 Since UShip is mainly CDI based, it will be compatible with any kind of persistence Layer from SQL to NoSQL.
