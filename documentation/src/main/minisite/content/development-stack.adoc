@@ -224,6 +224,67 @@ Then add new exec build plugin instructions:
 Similarly to Asciidoctor documentation you can generate a collection of JSON-RPC requests using `PostmanCollectionGenerator` main.
 It takes an OpenRPC file (you can get it with `openrpc` method) and output a Postman collection file.
 
+== Persistence
+
+Since UShip is mainly CDI based, it will be compatible with any kind of persistence Layer from SQL to NoSQL.
+However, for common simple cases, we ship a small JDBC mapper in our `io.yupiik.uship:persistence` module.
+
+Its scope is not to replace JPA but for simple cases to just provide a very light ORB.
+It only supports flat mapping - relationships must be managed by your which also means no magic or lazy query ;) - and transactions are managed through the `DataSource`.
+It works if the `Connection` is in autocommit mode or if you handle the commit through a transactional interceptor for example.
+
+The entry point is the `Database.of(configuration)` factory then all operations are available on the `database` instance.
+
+Here some examples:
+
+[source,java]
+----
+final var database = Database.of(new Configuration().setDataSource(dataSource));
+final var entity = database.getOrCreateEntity(MyFlatEntity.class);
+final var ddl = entity.ddl();
+// execute the statement on a Connection to create the table
+
+final var entity = ...;
+database.insert(entity);
+final var found = database.findById(MyEntity.class, "myid");
+database.update(entity);
+database.delete(entity);
+----
+
+Mapping is a simple as:
+
+[source,java]
+----
+@Table("MY_ENTITY")
+public class MyEntity {
+    @Id
+    private String id;
+
+    @Column // mark the field as persistent
+    private String name;
+
+    @Column(name = "SIMPLE_AGE") // rename the field
+    private int age;
+
+    @OnInsert
+    private void onInsert() {
+        id = MyIDFactory.create(); // any custom way to create an ID like an UUID (recommended)
+    }
+
+    @OnUpdate
+    private void onUpdate() {
+        // no-op
+    }
+
+    @OnDelete
+    private void onDelete() {
+        // no-op
+    }
+}
+----
+
+For more advanced cases you can use `query` and `batch` methods from the `Database` instance.
+
 == Going further
 
 It is possible to enrich the JSON-RPC protocol, in particular bulk request support, by reusing `io.yupiik.uship.jsonrpc.core.impl.JsonRpcHandler` class in your own endpoints.
