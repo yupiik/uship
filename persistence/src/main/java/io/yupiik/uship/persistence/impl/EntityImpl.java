@@ -110,6 +110,7 @@ public class EntityImpl<E> implements Entity<E> {
         this.idFields = this.fields.values().stream()
                 .filter(it -> it.isAnnotationPresent(Id.class) || ofNullable(constructorParameters.get(it.getName()))
                         .map(p -> p.parameter.isAnnotationPresent(Id.class))
+                        .filter(ok -> ok)
                         .isPresent())
                 .sorted(comparing(f -> {
                     final var id = f.getAnnotation(Id.class);
