@@ -110,6 +110,7 @@
           <systemPropertyVariables>
             <java.util.logging.manager>io.yupiik.logging.jul.YupiikLogManager</java.util.logging.manager>
             <yupiik.tomcat.port>0</yupiik.tomcat.port>
+            <h2.aliasColumnName>true</h2.aliasColumnName>
           </systemPropertyVariables>
         </configuration>
       </plugin>

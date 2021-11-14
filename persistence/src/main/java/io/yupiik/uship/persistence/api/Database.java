@@ -22,6 +22,7 @@ import java.sql.ResultSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Database operation repository.
@@ -45,6 +46,10 @@ public interface Database {
     <T> T findById(Class<T> type, Object id);
 
     <T> List<T> query(Class<T> type, String sql, Consumer<StatementBinder> binder);
+
+    <T> T query(String sql,
+                Consumer<StatementBinder> binder,
+                Function<ResultSetWrapper, T> resultSetMapper);
 
     int[] batch(String sql, Iterator<Consumer<StatementBinder>> binders);
 

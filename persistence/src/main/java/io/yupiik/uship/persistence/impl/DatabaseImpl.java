@@ -18,6 +18,7 @@ package io.yupiik.uship.persistence.impl;
 import io.yupiik.uship.persistence.api.Database;
 import io.yupiik.uship.persistence.api.Entity;
 import io.yupiik.uship.persistence.api.PersistenceException;
+import io.yupiik.uship.persistence.api.ResultSetWrapper;
 import io.yupiik.uship.persistence.api.StatementBinder;
 import io.yupiik.uship.persistence.api.bootstrap.Configuration;
 import io.yupiik.uship.persistence.impl.query.QueryCompiler;
@@ -46,13 +47,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import static java.util.Locale.ROOT;
 import static java.util.Objects.requireNonNull;
-import static java.util.Spliterator.IMMUTABLE;
-import static java.util.Spliterators.spliteratorUnknownSize;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.StreamSupport.stream;
 
 public class DatabaseImpl implements Database {
     private final DataSource datasource;
@@ -87,6 +85,23 @@ public class DatabaseImpl implements Database {
             binder.accept(query);
             try (final var rset = query.getPreparedStatement().executeQuery()) {
                 return mapAll(type, rset);
+            }
+        } catch (final SQLException ex) {
+            throw new PersistenceException(ex);
+        }
+    }
+
+    @Override
+    public <T> T query(final String sql,
+                       final Consumer<StatementBinder> binder,
+                       final Function<ResultSetWrapper, T> resultSetMapper) {
+        requireNonNull(resultSetMapper, "can't query without a resultset handler");
+        requireNonNull(sql, "can't query without a query");
+        try (final var connection = datasource.getConnection();
+             final var query = queryCompiler.getOrCreate(new QueryKey<>(Object.class, sql)).apply(connection)) {
+            binder.accept(query);
+            try (final var rset = query.getPreparedStatement().executeQuery()) {
+                return resultSetMapper.apply(new ResultSetWrapperImpl(rset));
             }
         } catch (final SQLException ex) {
             throw new PersistenceException(ex);
@@ -239,27 +254,13 @@ public class DatabaseImpl implements Database {
 
     @Override
     public <T> T mapOne(final Class<T> type, final ResultSet resultSet) {
-        return getEntityImpl(type).nextProvider(resultSet).get();
+        return getEntityImpl(type).nextProvider(resultSet).apply(resultSet).get();
     }
 
     @Override
     public <T> List<T> mapAll(final Class<T> type, final ResultSet resultSet) {
-        final var provider = getEntityImpl(type).nextProvider(resultSet);
-        return stream(spliteratorUnknownSize(new Iterator<T>() {
-            @Override
-            public boolean hasNext() {
-                try {
-                    return resultSet.next();
-                } catch (final SQLException e) {
-                    throw new PersistenceException(e);
-                }
-            }
-
-            @Override
-            public T next() {
-                return provider.get();
-            }
-        }, IMMUTABLE), false).collect(toList());
+        final var provider = getEntityImpl(type).nextProvider(resultSet).apply(resultSet);
+        return new ResultSetWrapperImpl(resultSet).mapAll(r -> provider.get());
     }
 
     @Override
@@ -302,6 +303,37 @@ public class DatabaseImpl implements Database {
     }
 
     public Object lookup(final ResultSet resultSet, final String column, final Class<?> type) throws SQLException {
+        if (String.class == type) {
+            return resultSet.getString(column);
+        }
+        if (byte.class == type) {
+            return resultSet.getByte(column);
+        }
+        if (byte[].class == type) {
+            return resultSet.getBytes(column);
+        }
+        if (Integer.class == type || int.class == type) {
+            return resultSet.getInt(column);
+        }
+        if (Double.class == type || double.class == type) {
+            return resultSet.getDouble(column);
+        }
+        if (Float.class == type || float.class == type) {
+            return resultSet.getFloat(column);
+        }
+        if (Long.class == type || long.class == type) {
+            return resultSet.getLong(column);
+        }
+        if (Boolean.class == type || boolean.class == type) {
+            return resultSet.getBoolean(column);
+        }
+        if (Date.class == type) {
+            return resultSet.getDate(column);
+        }
+        return resultSet.getObject(column, type);
+    }
+
+    public Object lookup(final ResultSet resultSet, final int column, final Class<?> type) throws SQLException {
         if (String.class == type) {
             return resultSet.getString(column);
         }

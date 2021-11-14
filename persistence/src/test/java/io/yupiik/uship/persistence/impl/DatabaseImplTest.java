@@ -17,6 +17,7 @@ package io.yupiik.uship.persistence.impl;
 
 import io.yupiik.uship.persistence.api.Column;
 import io.yupiik.uship.persistence.api.Database;
+import io.yupiik.uship.persistence.api.Entity;
 import io.yupiik.uship.persistence.api.Id;
 import io.yupiik.uship.persistence.api.StatementBinder;
 import io.yupiik.uship.persistence.api.Table;
@@ -52,6 +53,36 @@ class DatabaseImplTest {
         }
         // query
         final var all = database.query(MyFlatEntity.class, "select name, id, age from FLAT_ENTITY order by name", StatementBinder.NONE);
+
+        // cleanup
+        entities.forEach(database::delete);
+
+        // asserts
+        assertEquals(entities, all);
+    }
+
+    @Test
+    @EnableH2
+    void findAllUsingAliases(final DataSource dataSource) throws SQLException {
+        final Database database = init(dataSource);
+
+        final var entities = new ArrayList<MyFlatEntity>();
+        for (int i = 0; i < 3; i++) { // seed data
+            final var instance = new MyFlatEntity();
+            instance.name = "test_" + i;
+            database.insert(instance);
+            entities.add(instance);
+        }
+        // query
+        final var entity = database.getOrCreateEntity(MyFlatEntity.class);
+        final var all = database.query(
+                "select name as pName, id as pId, age as pAge from FLAT_ENTITY order by pName", StatementBinder.NONE,
+                r -> {
+                    final var binder = entity
+                            .mapFromPrefix("p", r.get()) // this can be cached in the context of this query (caller code) if query is stable
+                            .apply(r.get()); // bind current resultSet set
+                    return r.mapAll(s -> binder.get());
+                });
 
         // cleanup
         entities.forEach(database::delete);

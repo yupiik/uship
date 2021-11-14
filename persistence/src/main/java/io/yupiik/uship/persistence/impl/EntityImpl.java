@@ -47,11 +47,13 @@ import java.util.Optional;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static java.util.Comparator.comparing;
+import static java.util.Locale.ROOT;
 import static java.util.Map.entry;
 import static java.util.Optional.ofNullable;
 import static java.util.function.Function.identity;
@@ -59,6 +61,7 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 
+// todo: some operation don't need the resultset.metadata usage (in particular queries we build ourselve internally).
 public class EntityImpl<E> implements Entity<E> {
     private final DatabaseImpl database;
     private final Class<?> rootType;
@@ -163,10 +166,7 @@ public class EntityImpl<E> implements Entity<E> {
     @Override
     public String[] ddl() {
         final var fields = this.fields.entrySet().stream()
-                .sorted(Comparator.<Map.Entry<String, Field>, Integer>comparing(e -> idFields.contains(e.getValue()) ?
-                                idFields.indexOf(e.getValue()) :
-                                Integer.MAX_VALUE)
-                        .thenComparing(Map.Entry::getKey))
+                .sorted(fieldOrder())
                 .map(f -> f.getKey() + " " + type(f.getValue())
                         .orElseGet(() -> translation.toDatabaseType(f.getValue().getType(), mergeAnnotations(f.getValue()))))
                 .collect(joining(", "));
@@ -182,32 +182,55 @@ public class EntityImpl<E> implements Entity<E> {
         };
     }
 
+    @Override
     public Class<?> getRootType() {
         return rootType;
     }
 
+    @Override
     public String getTable() {
         return table;
     }
 
+    @Override
     public String getFindByIdQuery() {
         return findByIdQuery;
     }
 
+    @Override
     public String getUpdateQuery() {
         return updateQuery;
     }
 
+    @Override
     public String getDeleteQuery() {
         return deleteQuery;
     }
 
+    @Override
     public String getInsertQuery() {
         return insertQuery;
     }
 
+    @Override
     public String getFindAllQuery() {
         return findAllQuery;
+    }
+
+    @Override
+    public String concatenateColumns(final ColumnsConcatenationRequest request) {
+        return this.fields.entrySet().stream()
+                .filter(it -> !request.getIgnored().contains(it.getKey()) && !request.getIgnored().contains(it.getValue().getName()))
+                .sorted(fieldOrder())
+                .map(e -> {
+                    final var name = e.getValue().getName();
+                    return request.getPrefix() + e.getKey() + (request.getAliasPrefix() != null ?
+                            " as " + (!request.getAliasPrefix().isBlank() ?
+                                    request.getAliasPrefix() + Character.toUpperCase(name.charAt(0)) + (name.length() > 1 ? name.substring(1) : "") :
+                                    e.getValue().getName()) :
+                            "");
+                })
+                .collect(joining(", "));
     }
 
     public List<Method> getOnInserts() {
@@ -218,7 +241,29 @@ public class EntityImpl<E> implements Entity<E> {
         return onUpdates;
     }
 
-    public Supplier<E> nextProvider(final ResultSet resultSet) {
+    @Override
+    public Function<ResultSet, Supplier<E>> mapFromPrefix(final String prefix, final ResultSet resultSet) {
+        if (prefix == null || prefix.isBlank()) {
+            return nextProvider(resultSet);
+        }
+
+        final var lcPrefix = prefix.toLowerCase(ROOT);
+        try {
+            final var metaData = resultSet.getMetaData();
+            final var columns = IntStream.rangeClosed(1, metaData.getColumnCount()).mapToObj(i -> {
+                try {
+                    return metaData.getColumnName(i);
+                } catch (final SQLException e) {
+                    throw new IllegalStateException(e);
+                }
+            }).map(it -> it.toLowerCase(ROOT).startsWith(lcPrefix) ? it.substring(prefix.length()) : null /* ignored */).collect(toList());
+            return toProvider(columns);
+        } catch (final SQLException e) {
+            throw new PersistenceException(e);
+        }
+    }
+
+    public Function<ResultSet, Supplier<E>> nextProvider(final ResultSet resultSet) {
         try {
             final var metaData = resultSet.getMetaData();
             final var columns = IntStream.rangeClosed(1, metaData.getColumnCount()).mapToObj(i -> {
@@ -228,25 +273,38 @@ public class EntityImpl<E> implements Entity<E> {
                     throw new IllegalStateException(e);
                 }
             }).collect(toList());
-            return constructorParameters.isEmpty() ?
-                    pojoProvider(resultSet, columns) :
-                    recordProvider(resultSet, columns);
+            return toProvider(columns);
         } catch (final SQLException e) {
             throw new PersistenceException(e);
         }
     }
 
+    private Function<ResultSet, Supplier<E>> toProvider(final List<String> columns) {
+        return constructorParameters.isEmpty() ?
+                resultSet -> pojoProvider(resultSet, columns) :
+                resultSet -> recordProvider(resultSet, columns);
+    }
+
     private Supplier<E> recordProvider(final ResultSet resultSet, final List<String> columns) {
+        final var boundParams = new ArrayList<Map.Entry<ParameterHolder, Integer>>();
+        final var notSet = new ArrayList<>(constructorParameters.values());
+        for (int i = 0; i < columns.size(); i++) {
+            final var key = columns.get(i);
+            if (key == null) {
+                continue;
+            }
+
+            final var param = constructorParameters.get(key);
+            if (param != null) {
+                notSet.remove(param);
+                boundParams.add(entry(param, i + 1));
+            }
+        }
         return () -> {
             final var params = new Object[constructorParameters.size()];
-            final var notSet = new ArrayList<>(constructorParameters.values());
             try {
-                for (final var column : columns) {
-                    final var param = constructorParameters.get(column);
-                    if (param != null) {
-                        notSet.remove(param);
-                        params[param.index] = database.lookup(resultSet, column, param.parameter.getType());
-                    }
+                for (final var param : boundParams) {
+                    params[param.getKey().index] = database.lookup(resultSet, param.getValue(), param.getKey().parameter.getType());
                 }
                 if (!notSet.isEmpty()) {
                     notSet.forEach(p -> params[p.index] = p.defaultValue);
@@ -261,15 +319,26 @@ public class EntityImpl<E> implements Entity<E> {
     }
 
     private Supplier<E> pojoProvider(final ResultSet resultSet, final List<String> columns) {
+        final var boundFields = new ArrayList<Map.Entry<Field, Integer>>();
+        for (int i = 0; i < columns.size(); i++) {
+            final var key = columns.get(i);
+            if (key == null) {
+                continue;
+            }
+
+            final var field = fields.get(key);
+            if (field != null) {
+                boundFields.add(entry(field, i + 1));
+            }
+        }
         return () -> {
             try {
                 final var instance = constructor.newInstance();
-                for (final var column : columns) {
-                    final var field = fields.get(column);
+                for (final var field : boundFields) {
                     if (field == null) {
                         continue;
                     }
-                    field.set(instance, database.lookup(resultSet, column, field.getType()));
+                    field.getKey().set(instance, database.lookup(resultSet, field.getValue(), field.getKey().getType()));
                 }
                 return instance;
             } catch (final SQLException | InstantiationException | IllegalAccessException e) {
@@ -333,6 +402,13 @@ public class EntityImpl<E> implements Entity<E> {
                 throw new PersistenceException(ex);
             }
         }
+    }
+
+    private Comparator<Map.Entry<String, Field>> fieldOrder() {
+        return Comparator.<Map.Entry<String, Field>, Integer>comparing(e -> idFields.contains(e.getValue()) ?
+                        idFields.indexOf(e.getValue()) :
+                        Integer.MAX_VALUE)
+                .thenComparing(Map.Entry::getKey);
     }
 
     private void doBind(final Object instance, final PreparedStatement statement, final int idx, final Field field) {
