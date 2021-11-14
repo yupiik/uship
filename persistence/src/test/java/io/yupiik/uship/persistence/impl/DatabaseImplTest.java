@@ -17,7 +17,6 @@ package io.yupiik.uship.persistence.impl;
 
 import io.yupiik.uship.persistence.api.Column;
 import io.yupiik.uship.persistence.api.Database;
-import io.yupiik.uship.persistence.api.Entity;
 import io.yupiik.uship.persistence.api.Id;
 import io.yupiik.uship.persistence.api.StatementBinder;
 import io.yupiik.uship.persistence.api.Table;
