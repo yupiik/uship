@@ -48,7 +48,6 @@ import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -258,7 +257,7 @@ public class EntityImpl<E> implements Entity<E> {
     }
 
     @Override
-    public Function<ResultSet, Supplier<E>> mapFromPrefix(final String prefix, final String... columns) {
+    public Function<ResultSet, E> mapFromPrefix(final String prefix, final String... columns) {
         if (prefix == null || prefix.isBlank()) {
             return toProvider(columns);
         }
@@ -270,7 +269,7 @@ public class EntityImpl<E> implements Entity<E> {
     }
 
     @Override
-    public Function<ResultSet, Supplier<E>> mapFromPrefix(final String prefix, final ResultSet resultSet) {
+    public Function<ResultSet, E> mapFromPrefix(final String prefix, final ResultSet resultSet) {
         try {
             return mapFromPrefix(prefix, toNames(resultSet).toArray(String[]::new));
         } catch (final SQLException e) {
@@ -278,7 +277,7 @@ public class EntityImpl<E> implements Entity<E> {
         }
     }
 
-    public Function<ResultSet, Supplier<E>> nextProvider(final ResultSet resultSet) {
+    public Function<ResultSet, E> nextProvider(final ResultSet resultSet) {
         try {
             return toProvider(toNames(resultSet).toArray(String[]::new));
         } catch (final SQLException e) {
@@ -286,13 +285,13 @@ public class EntityImpl<E> implements Entity<E> {
         }
     }
 
-    private Function<ResultSet, Supplier<E>> toProvider(final String[] columns) {
+    private Function<ResultSet, E> toProvider(final String[] columns) {
         return constructorParameters.isEmpty() ?
-                resultSet -> pojoProvider(resultSet, columns) :
-                resultSet -> recordProvider(resultSet, columns);
+                pojoProvider(columns) :
+                recordProvider(columns);
     }
 
-    private Supplier<E> recordProvider(final ResultSet resultSet, final String[] columns) {
+    private Function<ResultSet, E> recordProvider(final String[] columns) {
         final var boundParams = new ArrayList<Map.Entry<ParameterHolder, Integer>>();
         final var notSet = new ArrayList<>(constructorParameters.values());
         for (int i = 0; i < columns.length; i++) {
@@ -307,7 +306,7 @@ public class EntityImpl<E> implements Entity<E> {
                 boundParams.add(entry(param, i + 1));
             }
         }
-        return () -> {
+        return resultSet -> {
             final var params = new Object[constructorParameters.size()];
             try {
                 for (final var param : boundParams) {
@@ -327,7 +326,7 @@ public class EntityImpl<E> implements Entity<E> {
         };
     }
 
-    private Supplier<E> pojoProvider(final ResultSet resultSet, final String[] columns) {
+    private Function<ResultSet, E> pojoProvider(final String[] columns) {
         final var boundFields = new ArrayList<Map.Entry<Field, Integer>>();
         for (int i = 0; i < columns.length; i++) {
             final var key = columns[i];
@@ -340,7 +339,7 @@ public class EntityImpl<E> implements Entity<E> {
                 boundFields.add(entry(field, i + 1));
             }
         }
-        return () -> {
+        return resultSet -> {
             try {
                 final var instance = constructor.newInstance();
                 for (final var field : boundFields) {

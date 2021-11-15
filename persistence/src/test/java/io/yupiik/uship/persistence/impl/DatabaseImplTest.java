@@ -79,9 +79,8 @@ class DatabaseImplTest {
                 "select name as pName, id as pId, age as pAge from FLAT_ENTITY order by pName", StatementBinder.NONE,
                 r -> {
                     final var binder = entity
-                            .mapFromPrefix("p", r.get()) // this can be cached in the context of this query (caller code) if query is stable
-                            .apply(r.get()); // bind current resultSet set
-                    return r.mapAll(s -> binder.get());
+                            .mapFromPrefix("p", r.get()); // this can be cached in the context of this query (caller code) if query is stable
+                    return r.mapAll(binder::apply);
                 });
 
         // cleanup
@@ -283,7 +282,7 @@ class DatabaseImplTest {
 
         @OnLoad
         private void load() {
-            if ("loaded".equals(name)) {
+            if ("loaded" .equals(name)) {
                 age = 1;
             }
         }

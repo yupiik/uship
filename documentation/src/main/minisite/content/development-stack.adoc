@@ -361,14 +361,13 @@ final var lines = final var lines = database.query(
         b -> b.bind("the-id"),
         result -> {
             // bind current resultSet and iterate over each line of the resultSet
-            final var set = result.get();
-            final var e1 = e1Binder.apply(set);
-            final var e2 = e2Binder.apply(set);
-            return result.mapAll(line -> Tuple2.of(e1.get(), e2.get()));
+            return result.mapAll(line -> Tuple2.of(e1Binder.apply(line), e2Binder.apply(line)));
         });
 // lines will get both Entity1 and Entity2 instances, then you can just filter them checking there is an id or not for example
 // and join them as needed to create your output model
 ----
+
+WARNING: 1.0.2 was broken, ensure to use >= 1.0.3 to get this feature.
 
 == Going further
 

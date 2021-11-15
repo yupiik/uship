@@ -21,7 +21,6 @@ import java.sql.ResultSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 public interface Entity<E> {
     String[] ddl();
@@ -60,7 +59,7 @@ public interface Entity<E> {
      * @param resultSet resultSet to check column names from.
      * @return the entity mapped (note that with a left join you can get an instance with only null fields).
      */
-    Function<ResultSet, Supplier<E>> mapFromPrefix(String prefix, ResultSet resultSet);
+    Function<ResultSet, E> mapFromPrefix(String prefix, ResultSet resultSet);
 
     /**
      * Same as {@link #mapFromPrefix(String, ResultSet)} but from a precomputed column names set.
@@ -70,7 +69,7 @@ public interface Entity<E> {
      * @param columnNames result set column names (ordered).
      * @return the entity mapped (note that with a left join you can get an instance with only null fields).
      */
-    Function<ResultSet, Supplier<E>> mapFromPrefix(String prefix, String... columnNames);
+    Function<ResultSet, E> mapFromPrefix(String prefix, String... columnNames);
 
     interface ColumnMetadata {
         Annotation[] getAnnotations();

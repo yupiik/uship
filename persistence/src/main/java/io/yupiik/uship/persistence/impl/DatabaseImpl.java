@@ -254,13 +254,13 @@ public class DatabaseImpl implements Database {
 
     @Override
     public <T> T mapOne(final Class<T> type, final ResultSet resultSet) {
-        return getEntityImpl(type).nextProvider(resultSet).apply(resultSet).get();
+        return getEntityImpl(type).nextProvider(resultSet).apply(resultSet);
     }
 
     @Override
     public <T> List<T> mapAll(final Class<T> type, final ResultSet resultSet) {
-        final var provider = getEntityImpl(type).nextProvider(resultSet).apply(resultSet);
-        return new ResultSetWrapperImpl(resultSet).mapAll(r -> provider.get());
+        final var provider = getEntityImpl(type).nextProvider(resultSet);
+        return new ResultSetWrapperImpl(resultSet).mapAll(provider::apply);
     }
 
     @Override
