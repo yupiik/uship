@@ -21,7 +21,7 @@
 
   <groupId>io.yupiik.uship</groupId>
   <artifactId>uship</artifactId>
-  <version>1.0.3</version>
+  <version>1.0.4-SNAPSHOT</version>
   <name>UShip</name>
   <description>Simple JSON-RPC based stack for microservices.</description>
   <packaging>pom</packaging>
@@ -334,7 +334,7 @@ under the License.
     <connection>scm:git:https://github.com/yupiik/uship.git</connection>
     <developerConnection>scm:git:https://github.com/yupiik/uship.git</developerConnection>
     <url>https://github.com/yupiik/uship.git</url>
-    <tag>uship-1.0.3</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <distributionManagement>
