@@ -445,6 +445,94 @@ public class MyEntity {
 <div class="paragraph">
 <p>For more advanced cases you can use <code>query</code> and <code>batch</code> methods from the <code>Database</code> instance.</p>
 </div>
+<div class="sect2">
+<h3 id="_advanced_queries">Advanced queries</h3>
+<div class="paragraph">
+<p>For advanced queries you can use a virtual table (it is a plain table but the <code>@Table</code> annotation is ignored) which would be used as project based on query aliases:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">final var sql = "SELECT DISTINCT " + String.join(", ",
+        entty1.concatenateColumns(new Entity.ColumnsConcatenationRequest()
+                .setPrefix("e1.").setAliasPrefix("")),
+        entity2.concatenateColumns(new Entity.ColumnsConcatenationRequest()
+                .setPrefix("e2.").setAliasPrefix("e2").setIgnored(Set.of("e1_id")))) + " " +
+        "FROM ENTITY1 e1" +
+        " LEFT JOIN ENTITY2 admin on e2.e1_id = e1.id " +
+        "WHERE e1.id = ?";
+final var lines = final var lines = database.query(
+        JoinModel.class, sql, b -&gt; b.bind("the-id"));</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>with <code>JoinModel</code> being something like:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Table(name = "ignored")
+public class JoinModel {
+    // e1
+    @Id
+    private String id;
+    @Column
+    private String name;
+    // e2
+    @Id
+    private String e2Id;
+    @Column
+    private String e2Label;
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Or you can also use <code>Entity</code> binder capacity:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">// can be done in a @PostConstruct
+final var e2Alias = "e2";
+final var e2Ignored = Set.of("e1Id");
+final var sql = "SELECT DISTINCT " + String.join(", ",
+        entty1.concatenateColumns(new Entity.ColumnsConcatenationRequest()
+                .setPrefix("e1.").setAliasPrefix("")),
+        entity2.concatenateColumns(new Entity.ColumnsConcatenationRequest()
+                .setPrefix(e2Alias + '.').setAliasPrefix(e2Alias).setIgnored(e2Ignored))) + " " +
+        "FROM ENTITY1 e1" +
+        " LEFT JOIN ENTITY2 admin on e2.e1_id = e1.id " +
+        "WHERE e1.id = ?";
+
+// precompile the binders
+var fields = database.getOrCreateEntity(Entity1.class).getOrderedColumns().stream()
+            .map(Entity.ColumnMetadata::javaName)
+            .collect(toList());
+final var e1Binder = database.getOrCreateEntity(Entity1.class)
+        .mapFromPrefix("", fields.toArray(String[]::new));
+
+fields.addAll( // continue to go through the queries fields appending the next entity ones - binder will pick the column indices right this way
+        database.getOrCreateEntity(Entity2.class)
+            .getOrderedColumns().stream()
+            .filter(c -&gt; !e2Ignored.contains(c.javaName()))
+            .map(c -&gt; c.toAliasName(e2Alias))
+            .collect(toList()));
+final var e2Binder = database.getOrCreateEntity(Entity2.class)
+        .mapFromPrefix(e2Alias, fields.toArray(String[]::new));
+
+// at runtime
+final var lines = final var lines = database.query(
+        sql,
+        b -&gt; b.bind("the-id"),
+        result -&gt; {
+            // bind current resultSet and iterate over each line of the resultSet
+            final var set = result.get();
+            final var e1 = e1Binder.apply(set);
+            final var e2 = e2Binder.apply(set);
+            return result.mapAll(line -&gt; Tuple2.of(e1.get(), e2.get()));
+        });
+// lines will get both Entity1 and Entity2 instances, then you can just filter them checking there is an id or not for example
+// and join them as needed to create your output model</code></pre>
+</div>
+</div>
+</div>
 </div>
 </div>
 <div class="sect1">
