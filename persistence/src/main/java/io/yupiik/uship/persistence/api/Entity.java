@@ -15,7 +15,10 @@
  */
 package io.yupiik.uship.persistence.api;
 
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Type;
 import java.sql.ResultSet;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -37,6 +40,8 @@ public interface Entity<E> {
 
     String getFindAllQuery();
 
+    List<ColumnMetadata> getOrderedColumns();
+
     /**
      * Creates a string usable when building a SQL query.
      * It is typically useful for JOIN queries.
@@ -49,11 +54,35 @@ public interface Entity<E> {
     String concatenateColumns(ColumnsConcatenationRequest request);
 
     /**
-     * @param prefix prefix to add to the column names for the mapping (often used in combination with {@link #concatenateColumns(ColumnsConcatenationRequest)}).
+     * {@see #mapFromPrefix(String, String...)}.
+     *
+     * @param prefix    prefix to add to the column names for the mapping (often used in combination with {@link #concatenateColumns(ColumnsConcatenationRequest)}).
      * @param resultSet resultSet to check column names from.
      * @return the entity mapped (note that with a left join you can get an instance with only null fields).
      */
     Function<ResultSet, Supplier<E>> mapFromPrefix(String prefix, ResultSet resultSet);
+
+    /**
+     * Same as {@link #mapFromPrefix(String, ResultSet)} but from a precomputed column names set.
+     * Enables to precompute the suppliers without having to get a result set instance.
+     *
+     * @param prefix      prefix to add to the column names for the mapping (often used in combination with {@link #concatenateColumns(ColumnsConcatenationRequest)}).
+     * @param columnNames result set column names (ordered).
+     * @return the entity mapped (note that with a left join you can get an instance with only null fields).
+     */
+    Function<ResultSet, Supplier<E>> mapFromPrefix(String prefix, String... columnNames);
+
+    interface ColumnMetadata {
+        Annotation[] getAnnotations();
+
+        <T extends Annotation> T getAnnotation(Class<T> type);
+
+        String javaName();
+
+        String columnName();
+
+        Type type();
+    }
 
     class ColumnsConcatenationRequest {
         /**

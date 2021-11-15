@@ -80,6 +80,7 @@ public class EntityImpl<E> implements Entity<E> {
     private final List<Method> onDeletes;
     private final List<Method> onLoads;
     private final DatabaseTranslation translation;
+    private final List<ColumnMetadata> columns;
 
     public EntityImpl(final DatabaseImpl database, final Class<E> type, final DatabaseTranslation translation) {
         final var record = Records.isRecord(type);
@@ -161,14 +162,25 @@ public class EntityImpl<E> implements Entity<E> {
         this.findAllQuery = "" +
                 "SELECT " + fieldNamesCommaSeparated +
                 " FROM " + table;
+
+        this.columns = (constructorParameters.isEmpty() ?
+                fields.entrySet().stream()
+                        .sorted(fieldOrder())
+                        .map(e -> new ColumnMetadataImpl(e.getValue().getAnnotations(), e.getValue().getName(), e.getValue().getGenericType(), e.getKey())) :
+                constructorParameters.entrySet().stream()
+                        .sorted(constructorOrder())
+                        .map(e -> new ColumnMetadataImpl(
+                                e.getValue().parameter.getAnnotations(), e.getValue().parameter.getName(),
+                                e.getValue().parameter.getParameterizedType(), e.getKey())))
+                .distinct()
+                .collect(toList());
     }
 
     @Override
     public String[] ddl() {
-        final var fields = this.fields.entrySet().stream()
-                .sorted(fieldOrder())
-                .map(f -> f.getKey() + " " + type(f.getValue())
-                        .orElseGet(() -> translation.toDatabaseType(f.getValue().getType(), mergeAnnotations(f.getValue()))))
+        final var fields = columns.stream()
+                .map(c -> c.columnName() + " " + type(c)
+                        .orElseGet(() -> translation.toDatabaseType(Class.class.cast(c.type()), c.getAnnotations())))
                 .collect(joining(", "));
         return new String[]{
                 "CREATE TABLE " + table + " (" +
@@ -218,16 +230,20 @@ public class EntityImpl<E> implements Entity<E> {
     }
 
     @Override
+    public List<ColumnMetadata> getOrderedColumns() {
+        return columns;
+    }
+
+    @Override
     public String concatenateColumns(final ColumnsConcatenationRequest request) {
-        return this.fields.entrySet().stream()
-                .filter(it -> !request.getIgnored().contains(it.getKey()) && !request.getIgnored().contains(it.getValue().getName()))
-                .sorted(fieldOrder())
+        return columns.stream()
+                .filter(it -> !request.getIgnored().contains(it.javaName()) && !request.getIgnored().contains(it.columnName()))
                 .map(e -> {
-                    final var name = e.getValue().getName();
-                    return request.getPrefix() + e.getKey() + (request.getAliasPrefix() != null ?
+                    final var name = e.javaName();
+                    return request.getPrefix() + e.columnName() + (request.getAliasPrefix() != null ?
                             " as " + (!request.getAliasPrefix().isBlank() ?
                                     request.getAliasPrefix() + Character.toUpperCase(name.charAt(0)) + (name.length() > 1 ? name.substring(1) : "") :
-                                    e.getValue().getName()) :
+                                    e.javaName()) :
                             "");
                 })
                 .collect(joining(", "));
@@ -242,22 +258,21 @@ public class EntityImpl<E> implements Entity<E> {
     }
 
     @Override
-    public Function<ResultSet, Supplier<E>> mapFromPrefix(final String prefix, final ResultSet resultSet) {
+    public Function<ResultSet, Supplier<E>> mapFromPrefix(final String prefix, final String... columns) {
         if (prefix == null || prefix.isBlank()) {
-            return nextProvider(resultSet);
+            return toProvider(columns);
         }
 
         final var lcPrefix = prefix.toLowerCase(ROOT);
+        return toProvider(Stream.of(columns)
+                .map(it -> it.toLowerCase(ROOT).startsWith(lcPrefix) ? it.substring(prefix.length()) : null /* ignored but don't loose the index */)
+                .toArray(String[]::new));
+    }
+
+    @Override
+    public Function<ResultSet, Supplier<E>> mapFromPrefix(final String prefix, final ResultSet resultSet) {
         try {
-            final var metaData = resultSet.getMetaData();
-            final var columns = IntStream.rangeClosed(1, metaData.getColumnCount()).mapToObj(i -> {
-                try {
-                    return metaData.getColumnName(i);
-                } catch (final SQLException e) {
-                    throw new IllegalStateException(e);
-                }
-            }).map(it -> it.toLowerCase(ROOT).startsWith(lcPrefix) ? it.substring(prefix.length()) : null /* ignored */).collect(toList());
-            return toProvider(columns);
+            return mapFromPrefix(prefix, toNames(resultSet).toArray(String[]::new));
         } catch (final SQLException e) {
             throw new PersistenceException(e);
         }
@@ -265,31 +280,23 @@ public class EntityImpl<E> implements Entity<E> {
 
     public Function<ResultSet, Supplier<E>> nextProvider(final ResultSet resultSet) {
         try {
-            final var metaData = resultSet.getMetaData();
-            final var columns = IntStream.rangeClosed(1, metaData.getColumnCount()).mapToObj(i -> {
-                try {
-                    return metaData.getColumnName(i);
-                } catch (final SQLException e) {
-                    throw new IllegalStateException(e);
-                }
-            }).collect(toList());
-            return toProvider(columns);
+            return toProvider(toNames(resultSet).toArray(String[]::new));
         } catch (final SQLException e) {
             throw new PersistenceException(e);
         }
     }
 
-    private Function<ResultSet, Supplier<E>> toProvider(final List<String> columns) {
+    private Function<ResultSet, Supplier<E>> toProvider(final String[] columns) {
         return constructorParameters.isEmpty() ?
                 resultSet -> pojoProvider(resultSet, columns) :
                 resultSet -> recordProvider(resultSet, columns);
     }
 
-    private Supplier<E> recordProvider(final ResultSet resultSet, final List<String> columns) {
+    private Supplier<E> recordProvider(final ResultSet resultSet, final String[] columns) {
         final var boundParams = new ArrayList<Map.Entry<ParameterHolder, Integer>>();
         final var notSet = new ArrayList<>(constructorParameters.values());
-        for (int i = 0; i < columns.size(); i++) {
-            final var key = columns.get(i);
+        for (int i = 0; i < columns.length; i++) {
+            final var key = columns[i];
             if (key == null) {
                 continue;
             }
@@ -309,7 +316,9 @@ public class EntityImpl<E> implements Entity<E> {
                 if (!notSet.isEmpty()) {
                     notSet.forEach(p -> params[p.index] = p.defaultValue);
                 }
-                return constructor.newInstance(params);
+                final var instance = constructor.newInstance(params);
+                callMethodsWith(onLoads, instance);
+                return instance;
             } catch (final SQLException | InstantiationException | IllegalAccessException e) {
                 throw new PersistenceException(e);
             } catch (final InvocationTargetException e) {
@@ -318,10 +327,10 @@ public class EntityImpl<E> implements Entity<E> {
         };
     }
 
-    private Supplier<E> pojoProvider(final ResultSet resultSet, final List<String> columns) {
+    private Supplier<E> pojoProvider(final ResultSet resultSet, final String[] columns) {
         final var boundFields = new ArrayList<Map.Entry<Field, Integer>>();
-        for (int i = 0; i < columns.size(); i++) {
-            final var key = columns.get(i);
+        for (int i = 0; i < columns.length; i++) {
+            final var key = columns[i];
             if (key == null) {
                 continue;
             }
@@ -340,6 +349,7 @@ public class EntityImpl<E> implements Entity<E> {
                     }
                     field.getKey().set(instance, database.lookup(resultSet, field.getValue(), field.getKey().getType()));
                 }
+                callMethodsWith(onLoads, instance);
                 return instance;
             } catch (final SQLException | InstantiationException | IllegalAccessException e) {
                 throw new PersistenceException(e);
@@ -347,6 +357,17 @@ public class EntityImpl<E> implements Entity<E> {
                 throw new PersistenceException(e.getTargetException());
             }
         };
+    }
+
+    public Stream<String> toNames(final ResultSet resultSet) throws SQLException {
+        final var metaData = resultSet.getMetaData();
+        return IntStream.rangeClosed(1, metaData.getColumnCount()).mapToObj(i -> {
+            try {
+                return metaData.getColumnName(i);
+            } catch (final SQLException e) {
+                throw new IllegalStateException(e);
+            }
+        });
     }
 
     public void onInsert(final Object instance, final PreparedStatement statement) {
@@ -402,6 +423,15 @@ public class EntityImpl<E> implements Entity<E> {
                 throw new PersistenceException(ex);
             }
         }
+    }
+
+    private Comparator<Map.Entry<String, ParameterHolder>> constructorOrder() {
+        return Comparator.<Map.Entry<String, ParameterHolder>, Integer>comparing(e -> idFields.stream()
+                        .filter(i -> i.getName().equals(e.getValue().parameter.getName()))
+                        .findFirst()
+                        .map(idFields::indexOf)
+                        .orElse(Integer.MAX_VALUE))
+                .thenComparing(Map.Entry::getKey);
     }
 
     private Comparator<Map.Entry<String, Field>> fieldOrder() {
@@ -468,15 +498,10 @@ public class EntityImpl<E> implements Entity<E> {
         return element.isAnnotationPresent(Id.class) || element.isAnnotationPresent(Column.class);
     }
 
-    private Optional<String> type(final Field field) {
-        return ofNullable(field.getAnnotation(Column.class))
+    private Optional<String> type(final ColumnMetadata columnMetadata) {
+        return ofNullable(columnMetadata.getAnnotation(Column.class))
                 .map(Column::type)
-                .filter(it -> !it.isBlank())
-                .or(() -> ofNullable(constructorParameters.get(field.getName()))
-                        .map(p -> p.parameter)
-                        .map(p -> p.getAnnotation(Column.class))
-                        .map(Column::type)
-                        .filter(it -> !it.isBlank()));
+                .filter(it -> !it.isBlank());
     }
 
     private String name(final Field f) {

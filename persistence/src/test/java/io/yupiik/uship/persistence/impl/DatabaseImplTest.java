@@ -22,6 +22,7 @@ import io.yupiik.uship.persistence.api.StatementBinder;
 import io.yupiik.uship.persistence.api.Table;
 import io.yupiik.uship.persistence.api.bootstrap.Configuration;
 import io.yupiik.uship.persistence.api.lifecycle.OnInsert;
+import io.yupiik.uship.persistence.api.lifecycle.OnLoad;
 import io.yupiik.uship.persistence.impl.test.EnableH2;
 import io.yupiik.uship.persistence.impl.translation.H2Translation;
 import org.junit.jupiter.api.Test;
@@ -207,6 +208,23 @@ class DatabaseImplTest {
         assertEquals(0, count(dataSource));
     }
 
+    @Test
+    @EnableH2
+    void onLoad(final DataSource dataSource) throws SQLException {
+        final Database database = init(dataSource);
+
+        final var instance = new MyFlatEntity();
+        instance.name = "loaded";
+        database.insert(instance);
+        assertEquals(1, count(dataSource));
+        assertEquals("MyFlatEntity[id='loaded', name='loaded', age=0]", instance.toString());
+
+        final var firstLookup = database.findById(MyFlatEntity.class, "loaded");
+        assertEquals("MyFlatEntity[id='loaded', name='loaded', age=1]", firstLookup.toString());
+
+        database.delete(instance);
+    }
+
     private Database init(final DataSource dataSource) throws SQLException {
         final var database = Database.of(new Configuration().setDataSource(dataSource));
         final var entity = database.getOrCreateEntity(MyFlatEntity.class);
@@ -261,6 +279,13 @@ class DatabaseImplTest {
         @OnInsert
         private void init() {
             id = name;
+        }
+
+        @OnLoad
+        private void load() {
+            if ("loaded".equals(name)) {
+                age = 1;
+            }
         }
 
         @Override

@@ -25,8 +25,10 @@ import io.yupiik.uship.persistence.impl.test.EnableH2;
 import org.junit.jupiter.api.Test;
 
 import javax.sql.DataSource;
+import java.util.List;
 import java.util.Set;
 
+import static java.util.stream.Collectors.toList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class EntityImplTest {
@@ -39,6 +41,17 @@ class EntityImplTest {
         assertEquals("a.id as aId, a.SIMPLE_AGE as aAge, a.name as aName", entity.concatenateColumns(new Entity.ColumnsConcatenationRequest().setAliasPrefix("a").setPrefix("a.")));
         assertEquals("a.id, a.SIMPLE_AGE, a.name", entity.concatenateColumns(new Entity.ColumnsConcatenationRequest().setPrefix("a.")));
         assertEquals("a.id as id, a.SIMPLE_AGE as age, a.name as name", entity.concatenateColumns(new Entity.ColumnsConcatenationRequest().setPrefix("a.").setAliasPrefix("")));
+    }
+
+    @Test
+    @EnableH2
+    void metadata(final DataSource dataSource) {
+        final var entity = Database.of(new Configuration().setDataSource(dataSource)).getOrCreateEntity(SimpleFlatEntity.class);
+        assertEquals(
+                List.of("id (java.lang.String): id", "age (int): SIMPLE_AGE", "name (java.lang.String): name"),
+                entity.getOrderedColumns().stream()
+                        .map(c -> c.javaName() + " (" + c.type().getTypeName() + "): " + c.columnName())
+                        .collect(toList()));
     }
 
     @Table("SIMPLE_FLAT_ENTITY")
