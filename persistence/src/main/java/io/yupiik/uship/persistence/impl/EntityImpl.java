@@ -300,7 +300,14 @@ public class EntityImpl<E> implements Entity<E> {
                 continue;
             }
 
-            final var param = constructorParameters.get(key);
+            var param = constructorParameters.get(key); // fast path if it matches
+            if (param == null) { // try by java name
+                param = this.columns.stream()
+                        .filter(c -> c.javaName().equalsIgnoreCase(key))
+                        .findFirst()
+                        .map(c -> constructorParameters.get(c.columnName()))
+                        .orElse(null);
+            }
             if (param != null) {
                 notSet.remove(param);
                 boundParams.add(entry(param, i + 1));
@@ -334,7 +341,14 @@ public class EntityImpl<E> implements Entity<E> {
                 continue;
             }
 
-            final var field = fields.get(key);
+            var field = fields.get(key);
+            if (field == null) { // try by java name
+                field = this.columns.stream()
+                        .filter(c -> c.javaName().equalsIgnoreCase(key))
+                        .findFirst()
+                        .map(c -> fields.get(c.columnName()))
+                        .orElse(null);
+            }
             if (field != null) {
                 boundFields.add(entry(field, i + 1));
             }
