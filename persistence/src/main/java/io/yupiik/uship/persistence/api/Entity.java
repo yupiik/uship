@@ -82,6 +82,12 @@ public interface Entity<E> {
         String columnName();
 
         Type type();
+
+        /**
+         * @param alias alias name in {@link #concatenateColumns(ColumnsConcatenationRequest)}.
+         * @return the computed alias name for this column.
+         */
+        String toAliasName(String alias);
     }
 
     class ColumnsConcatenationRequest {

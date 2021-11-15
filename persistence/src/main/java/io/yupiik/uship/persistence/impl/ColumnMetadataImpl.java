@@ -66,6 +66,13 @@ public class ColumnMetadataImpl implements Entity.ColumnMetadata {
     }
 
     @Override
+    public String toAliasName(final String alias) {
+        return alias.isEmpty() ?
+                javaName() :
+                (alias + Character.toUpperCase(javaName.charAt(0)) + (javaName.length() == 1 ? "" : javaName.substring(1)));
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
