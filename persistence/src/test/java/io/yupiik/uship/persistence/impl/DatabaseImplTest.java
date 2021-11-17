@@ -41,6 +41,24 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class DatabaseImplTest {
     @Test
     @EnableH2
+    void execute(final DataSource dataSource) throws SQLException {
+        final Database database = init(dataSource);
+
+        for (int i = 0; i < 3; i++) { // seed data
+            final var instance = new MyFlatEntity();
+            instance.name = "test_" + i;
+            database.insert(instance);
+        }
+
+        final var all = database.query(MyFlatEntity.class, "select name, id, age from FLAT_ENTITY order by name", StatementBinder.NONE);
+        assertEquals(3, all.size());
+
+        assertEquals(3, database.execute("delete from FLAT_ENTITY where name like ?", b -> b.bind("test%")));
+        assertEquals(0, database.query(MyFlatEntity.class, "select name, id, age from FLAT_ENTITY order by name", StatementBinder.NONE).size());
+    }
+
+    @Test
+    @EnableH2
     void findAll(final DataSource dataSource) throws SQLException {
         final Database database = init(dataSource);
 

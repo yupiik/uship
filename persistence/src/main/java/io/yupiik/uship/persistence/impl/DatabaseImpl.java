@@ -109,6 +109,19 @@ public class DatabaseImpl implements Database {
     }
 
     @Override
+    public int execute(final String sql, final Consumer<StatementBinder> binder) {
+        requireNonNull(binder, "can't execute without a binder");
+        requireNonNull(sql, "can't execute without a query");
+        try (final var connection = datasource.getConnection();
+             final var query = queryCompiler.getOrCreate(new QueryKey<>(Object.class, sql)).apply(connection)) {
+            binder.accept(query);
+            return query.getPreparedStatement().executeUpdate();
+        } catch (final SQLException ex) {
+            throw new PersistenceException(ex);
+        }
+    }
+
+    @Override
     public int[] batch(final String sql, final Iterator<Consumer<StatementBinder>> binders) {
         requireNonNull(binders, "can't bind without binders");
         requireNonNull(sql, "can't execute bulk without a statement");

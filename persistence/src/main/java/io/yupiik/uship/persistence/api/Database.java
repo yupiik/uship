@@ -51,6 +51,8 @@ public interface Database {
                 Consumer<StatementBinder> binder,
                 Function<ResultSetWrapper, T> resultSetMapper);
 
+    int execute(String sql, Consumer<StatementBinder> binder);
+
     int[] batch(String sql, Iterator<Consumer<StatementBinder>> binders);
 
     <T> int[] batchInsert(Class<T> type, Iterator<T> instances);
