@@ -48,9 +48,12 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.IntStream;
 
 import static java.util.Locale.ROOT;
 import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
 
 public class DatabaseImpl implements Database {
     private final DataSource datasource;
@@ -267,12 +270,27 @@ public class DatabaseImpl implements Database {
 
     @Override
     public <T> T mapOne(final Class<T> type, final ResultSet resultSet) {
-        return getEntityImpl(type).nextProvider(resultSet).apply(resultSet);
+        return type == Map.class ?
+                (T) mapAsMap(toNames(resultSet), resultSet) :
+                getEntityImpl(type).nextProvider(resultSet).apply(resultSet);
     }
 
     @Override
     public <T> List<T> mapAll(final Class<T> type, final ResultSet resultSet) {
-        final var provider = getEntityImpl(type).nextProvider(resultSet);
+        final var provider = type == Map.class ?
+                new Function<ResultSet, T>() {
+                    private final List<String> names;
+
+                    {
+                        names = toNames(resultSet);
+                    }
+
+                    @Override
+                    public T apply(final ResultSet line) {
+                        return (T) mapAsMap(names, line);
+                    }
+                } :
+                getEntityImpl(type).nextProvider(resultSet);
         return new ResultSetWrapperImpl(resultSet).mapAll(provider::apply);
     }
 
@@ -375,6 +393,33 @@ public class DatabaseImpl implements Database {
             return resultSet.getDate(column);
         }
         return resultSet.getObject(column, type);
+    }
+
+    private List<String> toNames(final ResultSet resultSet) {
+        final List<String> names;
+        try {
+            final var metaData = resultSet.getMetaData();
+            names = IntStream.rangeClosed(1, metaData.getColumnCount()).mapToObj(i -> {
+                try {
+                    return metaData.getColumnName(i);
+                } catch (final SQLException e) {
+                    throw new IllegalStateException(e);
+                }
+            }).collect(toList());
+        } catch (final SQLException s) {
+            throw new PersistenceException(s);
+        }
+        return names;
+    }
+
+    private Map<String, ?> mapAsMap(final List<String> names, final ResultSet line) {
+        return names.stream().collect(toMap(n -> n, n -> {
+            try {
+                return line.getObject(n);
+            } catch (final SQLException e) {
+                throw new PersistenceException(e);
+            }
+        }));
     }
 
     private <T> EntityImpl<T> getEntityImpl(final Class<T> type) {
