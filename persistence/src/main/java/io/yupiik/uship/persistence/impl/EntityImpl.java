@@ -38,6 +38,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -424,17 +425,37 @@ public class EntityImpl<E> implements Entity<E> {
         }
 
         int idx = 1;
-        final var ids = Object[].class.cast(id);
-        if (ids.length != idFields.size()) {
-            throw new IllegalArgumentException("Invalid id, expected " + idFields.size() + " bindings but got " + ids.length + ": " + idFields);
-        }
-        for (final var field : idFields) {
-            final var value = ids[idx - 1];
-            try {
-                database.doBind(stmt, idx, value, field.getType());
-            } catch (final SQLException ex) {
-                throw new PersistenceException(ex);
+        if (Object[].class.isInstance(id)) {
+            final var ids = Object[].class.cast(id);
+            if (ids.length != idFields.size()) {
+                throw new IllegalArgumentException("Invalid id, expected " + idFields.size() + " bindings but got " + ids.length + ": " + idFields);
             }
+            for (final var field : idFields) {
+                final var value = ids[idx - 1];
+                try {
+                    database.doBind(stmt, idx, value, field.getType());
+                    idx++;
+                } catch (final SQLException ex) {
+                    throw new PersistenceException(ex);
+                }
+            }
+        } else if (Collection.class.isInstance(id)) {
+            final var ids = Collection.class.cast(id);
+            if (ids.size() != idFields.size()) {
+                throw new IllegalArgumentException("Invalid id, expected " + idFields.size() + " bindings but got " + ids.size() + ": " + idFields);
+            }
+            final var it = ids.iterator();
+            for (final var field : idFields) {
+                final var value = it.next();
+                try {
+                    database.doBind(stmt, idx, value, field.getType());
+                    idx++;
+                } catch (final SQLException ex) {
+                    throw new PersistenceException(ex);
+                }
+            }
+        } else {
+            throw new IllegalArgumentException("Invalid id, ensure to pass an object array or collection");
         }
     }
 
