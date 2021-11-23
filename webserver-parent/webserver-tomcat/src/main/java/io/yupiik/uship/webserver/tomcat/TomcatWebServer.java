@@ -15,6 +15,7 @@
  */
 package io.yupiik.uship.webserver.tomcat;
 
+import io.yupiik.uship.webserver.tomcat.loader.LaunchingClassLoaderLoader;
 import jakarta.servlet.DispatcherType;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.annotation.HandlesTypes;
@@ -106,6 +107,7 @@ public class TomcatWebServer implements AutoCloseable {
 
     protected StandardContext createContext() {
         final var ctx = newContext();
+        ctx.setLoader(new LaunchingClassLoaderLoader());
         ctx.setPath("");
         ctx.setName("");
         // ctx.setJarScanner(newSkipScanner()); // we don't use scanning at all with this setup so just ignore useless optims for now
