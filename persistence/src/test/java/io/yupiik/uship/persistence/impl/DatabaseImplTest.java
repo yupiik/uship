@@ -59,6 +59,7 @@ class DatabaseImplTest {
         assertEquals("test_0", all.get(0).name);
         assertEquals(all.get(0), ops.findOne("test_0"));
         assertEquals(all.get(0), ops.findOneWithPlaceholders("test_0"));
+        assertEquals(all.subList(0, 2), ops.findByName(List.of("test_0", "test_1")));
 
         final IntSupplier counter = () -> database.query(MyFlatEntity.class, "select name, id, age from FLAT_ENTITY order by name", StatementBinder.NONE).size();
         assertEquals(1, ops.delete("test_1"), () -> ops.findAll().toString());
@@ -376,6 +377,9 @@ class DatabaseImplTest {
 
         @Statement("select ${e#fields} from ${e#table} where name = ${parameters#name}")
         MyFlatEntity findOneWithPlaceholders(String name);
+
+        @Statement("select ${e#fields} from ${e#table} where name ${parameters#name#in} order by name")
+        List<MyFlatEntity> findByName(List<String> name);
 
         @Statement("delete from ${e#table} where name like ?")
         int delete(String name);

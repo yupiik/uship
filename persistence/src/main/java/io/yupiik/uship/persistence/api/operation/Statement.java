@@ -39,6 +39,9 @@ public @interface Statement {
      * You can also use name parameter with placeholders like {@code parameters#name}, it uses bytecode parameter names
      * so ensure to set {@code -parameters} to the java compiler.
      *
+     * The placeholder {@code ${parameters#<name>#in}} can be used to expand a collection to a dynamic number of {@code ?}.
+     * For example: {@code select ${e#fields} from ${e#table} where name in ${parameters#name#in}}.
+     *
      * IMPORTANT: if you use {@code ${parameters#<name>}} bindings, don't mix it with manual {@code ?}, it will not work,
      * use either only manual explicit {@code ?} bindings or placeholder ones.
      *
