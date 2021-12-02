@@ -222,7 +222,7 @@ public class DatabaseImpl implements Database {
             if (stmt.executeUpdate() == 0) {
                 throw new PersistenceException("Can't save " + instance);
             }
-            return null;
+            return instance;
         } catch (final SQLException ex) {
             throw new PersistenceException(ex);
         }
@@ -238,7 +238,7 @@ public class DatabaseImpl implements Database {
             if (stmt.executeUpdate() == 0) {
                 throw new PersistenceException("Can't update " + instance);
             }
-            return null;
+            return instance;
         } catch (final SQLException ex) {
             throw new PersistenceException(ex);
         }
@@ -254,7 +254,7 @@ public class DatabaseImpl implements Database {
             if (stmt.executeUpdate() == 0) {
                 throw new PersistenceException("Can't delete " + instance);
             }
-            return null;
+            return instance;
         } catch (final SQLException ex) {
             throw new PersistenceException(ex);
         }
