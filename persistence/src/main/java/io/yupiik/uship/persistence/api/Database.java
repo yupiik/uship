@@ -16,6 +16,7 @@
 package io.yupiik.uship.persistence.api;
 
 import io.yupiik.uship.persistence.api.bootstrap.Configuration;
+import io.yupiik.uship.persistence.api.operation.Operation;
 import io.yupiik.uship.persistence.impl.DatabaseImpl;
 
 import java.sql.ResultSet;
@@ -31,6 +32,15 @@ import java.util.function.Function;
  * or is set up to run in a transactional context (autoCommit setup in particular).
  */
 public interface Database {
+    /**
+     * creates a querying API instance.
+     *
+     * @param api the operation API (@{@link Operation}.
+     * @param <M> the type of operation API.
+     * @return an API instance.
+     */
+    <M> M operation(Class<M> api);
+
     <T> T insert(T instance);
 
     <T> T update(T instance);

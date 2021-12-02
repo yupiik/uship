@@ -369,6 +369,45 @@ final var lines = final var lines = database.query(
 
 WARNING: 1.0.2 was broken, ensure to use >= 1.0.3 to get this feature.
 
+=== Query from interfaces
+
+A light interface statement support is done through `@Operation` and `@Statement` annotations.
+The idea is to expose the `Database` capabilities through a statically typed API.
+Here is a sample:
+
+[source,java]
+----
+@Operation(aliases = @Operation.Alias(alias = "e", type = MyFlatEntity.class))
+public interface MyOps {
+    @Statement("select count(*) from ${e#table}")
+    long countAll();
+
+    @Statement("select ${e#fields} from ${e#table} order by name")
+    List<MyFlatEntity> findAll();
+
+    @Statement("select ${e#fields} from ${e#table} where name = ?")
+    MyFlatEntity findOne(String name);
+
+    @Statement("select ${e#fields} from ${e#table} where name = ${parameters#name}")
+    MyFlatEntity findOneWithPlaceholders(String name);
+
+    @Statement("delete from ${e#table} where name like ?")
+    int delete(String name);
+
+    @Statement("delete from ${e#table} where name like ?")
+    void deleteWithoutReturnedValue(String name);
+}
+----
+
+The statements can be plain SQL with `?` bindings or can use the available interpolations (but don't mix `${parameters#xxx}` with `?` bindings, you must choose one type of binding per statement):
+
+* `${<alias>#table}`: name of the table of the entity aliased by `alias`,
+* `${<alias>#fields}`: all columns of the entity represented by the alias,
+* `${parameters#<name>}`: will be replaced by a `?` binding and the parameter named `name` (using bytecode name, ensure to compile with `-parameter` flag) will be used. It enables to not set the parameters in the same order than in the query because otherwise it is just bound blindly in order.
+
+Aliases are defined through `@Operation` annotation on the interface and enables to have a shorter syntax in the statement.
+You can also use the fully qualified name of the entity instead of defining aliases but it is less readable.
+
 == Going further
 
 It is possible to enrich the JSON-RPC protocol, in particular bulk request support, by reusing `io.yupiik.uship.jsonrpc.core.impl.JsonRpcHandler` class in your own endpoints.

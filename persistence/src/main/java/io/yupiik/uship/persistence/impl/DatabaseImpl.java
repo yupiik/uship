@@ -21,6 +21,7 @@ import io.yupiik.uship.persistence.api.PersistenceException;
 import io.yupiik.uship.persistence.api.ResultSetWrapper;
 import io.yupiik.uship.persistence.api.StatementBinder;
 import io.yupiik.uship.persistence.api.bootstrap.Configuration;
+import io.yupiik.uship.persistence.impl.operation.Operations;
 import io.yupiik.uship.persistence.impl.query.QueryCompiler;
 import io.yupiik.uship.persistence.impl.query.QueryKey;
 import io.yupiik.uship.persistence.impl.query.StatementBinderImpl;
@@ -32,6 +33,7 @@ import io.yupiik.uship.persistence.impl.translation.PostgresTranslation;
 import io.yupiik.uship.persistence.spi.DatabaseTranslation;
 
 import javax.sql.DataSource;
+import java.lang.reflect.Proxy;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -52,6 +54,7 @@ import java.util.stream.IntStream;
 
 import static java.util.Locale.ROOT;
 import static java.util.Objects.requireNonNull;
+import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 
@@ -196,6 +199,17 @@ public class DatabaseImpl implements Database {
         } catch (final SQLException ex) {
             throw new PersistenceException(ex);
         }
+    }
+
+    @Override
+    public <M> M operation(final Class<M> api) {
+        final var loader = ofNullable(Thread.currentThread().getContextClassLoader())
+                .or(() -> ofNullable(api.getClassLoader()))
+                .orElseGet(ClassLoader::getSystemClassLoader);
+        return api.cast(Proxy.newProxyInstance(
+                loader,
+                new Class<?>[]{api},
+                new Operations(this, api, loader)));
     }
 
     @Override

@@ -23,6 +23,8 @@ import io.yupiik.uship.persistence.api.Table;
 import io.yupiik.uship.persistence.api.bootstrap.Configuration;
 import io.yupiik.uship.persistence.api.lifecycle.OnInsert;
 import io.yupiik.uship.persistence.api.lifecycle.OnLoad;
+import io.yupiik.uship.persistence.api.operation.Operation;
+import io.yupiik.uship.persistence.api.operation.Statement;
 import io.yupiik.uship.persistence.impl.test.EnableH2;
 import io.yupiik.uship.persistence.impl.translation.H2Translation;
 import org.junit.jupiter.api.Test;
@@ -34,11 +36,40 @@ import java.util.List;
 import java.util.Objects;
 import java.util.StringJoiner;
 import java.util.function.Consumer;
+import java.util.function.IntSupplier;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class DatabaseImplTest {
+    @Test
+    @EnableH2
+    void operations(final DataSource dataSource) throws SQLException {
+        final Database database = init(dataSource);
+
+        for (int i = 0; i < 3; i++) { // seed data
+            final var instance = new MyFlatEntity();
+            instance.name = "test_" + i;
+            database.insert(instance);
+        }
+
+        final var ops = database.operation(MyOps.class);
+        final var all = ops.findAll();
+        assertEquals(3, all.size());
+        assertEquals("test_0", all.get(0).name);
+        assertEquals(all.get(0), ops.findOne("test_0"));
+        assertEquals(all.get(0), ops.findOneWithPlaceholders("test_0"));
+
+        final IntSupplier counter = () -> database.query(MyFlatEntity.class, "select name, id, age from FLAT_ENTITY order by name", StatementBinder.NONE).size();
+        assertEquals(1, ops.delete("test_1"), () -> ops.findAll().toString());
+        assertEquals(2, ops.countAll(), () -> ops.findAll().toString());
+        assertEquals(counter.getAsInt(), ops.countAll(), () -> ops.findAll().toString());
+        ops.deleteWithoutReturnedValue("test_0");
+        assertEquals(1, counter.getAsInt(), () -> ops.findAll().toString());
+        assertEquals(1, ops.delete("test_%"), () -> ops.findAll().toString());
+        assertEquals(0, counter.getAsInt(), () -> ops.findAll().toString());
+    }
+
     @Test
     @EnableH2
     void execute(final DataSource dataSource) throws SQLException {
@@ -300,7 +331,7 @@ class DatabaseImplTest {
 
         @OnLoad
         private void load() {
-            if ("loaded" .equals(name)) {
+            if ("loaded".equals(name)) {
                 age = 1;
             }
         }
@@ -330,5 +361,26 @@ class DatabaseImplTest {
         public int hashCode() {
             return Objects.hash(id, name, age);
         }
+    }
+
+    @Operation(aliases = @Operation.Alias(alias = "e", type = MyFlatEntity.class))
+    public interface MyOps {
+        @Statement("select count(*) from ${e#table}")
+        long countAll();
+
+        @Statement("select ${e#fields} from ${e#table} order by name")
+        List<MyFlatEntity> findAll();
+
+        @Statement("select ${e#fields} from ${e#table} where name = ?")
+        MyFlatEntity findOne(String name);
+
+        @Statement("select ${e#fields} from ${e#table} where name = ${parameters#name}")
+        MyFlatEntity findOneWithPlaceholders(String name);
+
+        @Statement("delete from ${e#table} where name like ?")
+        int delete(String name);
+
+        @Statement("delete from ${e#table} where name like ?")
+        void deleteWithoutReturnedValue(String name);
     }
 }
