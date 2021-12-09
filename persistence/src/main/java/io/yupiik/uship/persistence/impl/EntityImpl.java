@@ -236,15 +236,20 @@ public class EntityImpl<E> implements Entity<E> {
 
     @Override
     public String concatenateColumns(final ColumnsConcatenationRequest request) {
+        final var translation = database.getTranslation();
         return columns.stream()
                 .filter(it -> !request.getIgnored().contains(it.javaName()) && !request.getIgnored().contains(it.columnName()))
                 .map(e -> {
                     final var name = e.javaName();
-                    return request.getPrefix() + e.columnName() + (request.getAliasPrefix() != null ?
-                            " as " + (!request.getAliasPrefix().isBlank() ?
+                    final var field = request.getPrefix().endsWith(".") ?
+                            request.getPrefix() + translation.wrapFieldName(e.columnName()) :
+                            translation.wrapFieldName(request.getPrefix() + e.columnName());
+                    final var alias = request.getAliasPrefix() != null ?
+                            " as " + translation.wrapFieldName(!request.getAliasPrefix().isBlank() ?
                                     request.getAliasPrefix() + Character.toUpperCase(name.charAt(0)) + (name.length() > 1 ? name.substring(1) : "") :
                                     e.javaName()) :
-                            "");
+                            "";
+                    return field + alias;
                 })
                 .collect(joining(", "));
     }

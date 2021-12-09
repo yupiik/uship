@@ -72,10 +72,11 @@ public class DefaultTranslation implements DatabaseTranslation {
     }
 
     @Override
-    public String toCreateTablePrimaryKeySuffix(List<Map.Entry<String, Annotation[]>> columns) {
+    public String toCreateTablePrimaryKeySuffix(final List<Map.Entry<String, Annotation[]>> columns) {
         return ", PRIMARY KEY (" +
                 columns.stream()
                         .map(Map.Entry::getKey)
+                        .map(this::wrapFieldName)
                         .collect(joining(", ")) +
                 ")";
     }

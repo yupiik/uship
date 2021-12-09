@@ -16,4 +16,13 @@
 package io.yupiik.uship.persistence.impl.translation;
 
 public class H2Translation extends DefaultTranslation {
+    @Override
+    public String wrapFieldName(final String name) {
+        switch (name) {
+            case "value":
+                return "`value`";
+            default:
+                return name;
+        }
+    }
 }
