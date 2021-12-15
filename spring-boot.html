@@ -3,7 +3,7 @@
 <body>
 
 <head>
-    <title>HTTP Server</title>
+    <title>Spring Boot</title>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -65,183 +65,58 @@
             </ul>
         </div>
 
-        <div id="http-server-html-container" class="container page-content http-server-html">
+        <div id="spring-boot-html-container" class="container page-content spring-boot-html">
                         <div class="page-header">
-                <h1>HTTP Server</h1>
+                <h1>Spring Boot</h1>
             </div>
             <div class="page-content-body">
-                <div id="preamble">
-<div class="sectionbody">
-<div class="quoteblock abstract">
-<blockquote>
-Uship (µship) embed Tomcat in your application enabling you to fully control it with almost no abstraction.
-</blockquote>
+                <div class="paragraph">
+<p>JSON-RPC server is integrated with JSON-RPC.</p>
 </div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_modes">Modes</h2>
-<div class="sectionbody">
 <div class="paragraph">
-<p>µship comes with two Tomcat modules:</p>
+<p>The entry point is the module <code>io.yupiik.uship:jsonrpc-spring</code>.
+Once added you can:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p><code>webserver-tomcat</code> which is a thin Apache Tomcat wrapper creating - by default - a ROOT context,</p>
+<p>mark your application with <code>@EnableJsonRpc</code>,</p>
 </li>
 <li>
-<p><code>webserver-cdi</code> which integrated <code>webserver-tomcat</code> with CDI.</p>
+<p>implement JSON-RPC methods using beans marked with <code>@JsonRpc</code> and methods with <code>@JsonRpcMethod</code>,</p>
+</li>
+<li>
+<p>configure the base url of the OpenRPC value using <code>jsonrpc.baseUrl</code> and binding url of the JSON-RPC endpoint with <code>jsonrpc.binding</code> in your application.properties (default uses the spring web server).</p>
 </li>
 </ul>
 </div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_standalone_mode">Standalone mode</h2>
-<div class="sectionbody">
 <div class="paragraph">
-<p>The standalone mode (<code>webserver-tomcat</code>) is mainly about creating a <code>TomcatWebServerConfiguration</code> and instantiating a <code>TomcatWebServer</code>:</p>
+<p>Here is a sample:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">// <b class="conum">(1)</b>
-final var configuration = new TomcatWebServerConfiguration();
-configuration.setPort(0); // random
-configuration.setInitializers(List.of((set, servletContext) -&gt; // <b class="conum">(2)</b>
-servletContext.addServlet("test", new HttpServlet() {
-    @Override
-    protected void service(final HttpServletRequest req, final HttpServletResponse resp) throws IOException {
-        resp.getWriter().write("ok from servlet");
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@EnableJsonRpc
+@SpringBootApplication
+public class MyApp {
+    @Bean
+    MyEndpoints endpoints() {
+        return new MyEndpoints();
     }
-}).addMapping("/test")));
+}
 
-try (final var server = new TomcatWebServer(configuration).create()) { // <b class="conum">(3)</b>
-    // now configuration.getPort() contains the runtime port since it was requested to be random (0) // <b class="conum">(4)</b>
+@JsonRpc
+public class MyEndpoints {
+    @JsonRpcMethod(name = "reverse")
+    public String reverse(@JsonRpcParam(value = "in") final String input) {
+        return new StringBuilder(input).reverse().toString();
+    }
 
-    // use the webserver
-}</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>Create a configuration instance,</p>
-</li>
-<li>
-<p>You can bind any servlet, filter etc using initializers,</p>
-</li>
-<li>
-<p>Create a server (<code>create</code> call is what starts the server) and don&#8217;t forget to close is when no more needed (done with <code>try-with-resource</code> syntax there),</p>
-</li>
-<li>
-<p>The port can be random using <code>0</code> in the original configuration, it will be updated after the startup of the server in this case.</p>
-</li>
-</ol>
-</div>
-<div class="admonitionblock important">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Important</div>
-</td>
-<td class="content">
-default Tomcat scanning (<code>@WebServlet</code> etc) is not enabled - you will see that with CDI it is rarely needed - but you can enable it adding a context customizer registering <code>ContextConfig</code>:
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>+</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">context.addLifecycleListener(new ContextConfig());</code></pre>
-</div>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_cdi_mode">CDI Mode</h2>
-<div class="sectionbody">
-<div class="paragraph">
-<p>CDI mode is almost the same as standalone mode except:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>You can (optional) produce <code>TomcatWebServerConfiguration</code> in CDI context:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Dependent
-public class TomcatConfigurationProducer {
-    // <b class="conum">(1)</b>
-    @Produces
-    @ApplicationScoped
-    public TomcatWebServerConfiguration tomcatWebServerConfiguration() {
-        final TomcatWebServerConfiguration tomcat = new TomcatWebServerConfiguration(configuration); // <b class="conum">(2)</b>
-        tomcat.setContextCustomizers(List.of(ctx -&gt; { // <b class="conum">(3)</b>
-            // ...
-        }));
-        return tomcat;
+    @JsonRpcMethod(name = "header")
+    public String header(@JsonRpcParam(value = "name") final String name,
+                         final HttpServletRequest request /*important: se jakarta one*/) {
+        return request.getHeader(name);
     }
 }</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>It can be a standard subclass of the POJO <code>TomcatWebServerConfiguration</code> or like here a producer, in all cases it is recommended to use <code>@ApplicationScoped</code> even if not required to ensure the instance is shared between injection if you reuse it soewhere else (like in tests or in a servlet),</p>
-</li>
-<li>
-<p>Create the configuration (same as standalone case), here te trick is generally to reuse the native configuration mecanism of the application (microprofile config for example),</p>
-</li>
-<li>
-<p>Add a context customizer to customize the docbase, context name etc&#8230;&#8203;</p>
-</li>
-</ol>
-</div>
-</li>
-<li>
-<p>You can (optional) create <code>ServletContextInitializer</code>, <code>ContextCustomizer</code> and <code>TomcatCustomizer</code> beans (with <code>@Default</code> qualifier) which will automatically be injected in the <code>TomcatWebServerConfiguration</code>.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Dependent
-public class ServletRegistrations implements ServletContainerInitializer {
-    @Inject
-    private HealthServlet health;
-
-    @Inject
-    private MetricsServlet metrics;
-
-    @Override
-    public void onStartup(final Set&lt;Class&lt;?&gt;&gt; ignored, final ServletContext servletContext) {
-        final var metricsBinding = servletContext.addServlet("metrics", metrics);
-        metricsBinding.addMapping("/metrics");
-        metricsBinding.setLoadOnStartup(0);
-
-        final var healthBinding = servletContext.addServlet("health", health);
-        healthBinding.addMapping("/health");
-        healthBinding.setLoadOnStartup(0);
-    }
-}</code></pre>
-</div>
-</div>
-<div class="admonitionblock tip">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Tip</div>
-</td>
-<td class="content">
-no need of a <code>META-INF/services/jakarta.servlet.ServletContainerInitializer</code> file in this case, CDI is the registry used.
-</td>
-</tr>
-</table>
-</div>
-</li>
-</ul>
-</div>
 </div>
 </div>
                 
