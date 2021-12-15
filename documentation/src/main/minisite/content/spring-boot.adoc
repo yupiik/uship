@@ -1,0 +1,38 @@
+= Spring Boot
+
+JSON-RPC server is integrated with JSON-RPC.
+
+The entry point is the module `io.yupiik.uship:jsonrpc-spring`.
+Once added you can:
+
+* mark your application with `@EnableJsonRpc`,
+* implement JSON-RPC methods using beans marked with `@JsonRpc` and methods with `@JsonRpcMethod`,
+* configure the base url of the OpenRPC value using `jsonrpc.baseUrl` and binding url of the JSON-RPC endpoint with `jsonrpc.binding` in your application.properties (default uses the spring web server).
+
+Here is a sample:
+
+[source,java]
+----
+@EnableJsonRpc
+@SpringBootApplication
+public class MyApp {
+    @Bean
+    MyEndpoints endpoints() {
+        return new MyEndpoints();
+    }
+}
+
+@JsonRpc
+public class MyEndpoints {
+    @JsonRpcMethod(name = "reverse")
+    public String reverse(@JsonRpcParam(value = "in") final String input) {
+        return new StringBuilder(input).reverse().toString();
+    }
+
+    @JsonRpcMethod(name = "header")
+    public String header(@JsonRpcParam(value = "name") final String name,
+                         final HttpServletRequest request /*important: se jakarta one*/) {
+        return request.getHeader(name);
+    }
+}
+----

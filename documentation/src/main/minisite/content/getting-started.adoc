@@ -66,3 +66,9 @@ xref:http-client.adoc[Read more.]
 UShip provides a convenient JDBC light mapper.
 
 xref:development-stack.adoc#_persistence[Read more.]
+
+== Spring Boot
+
+If you want a Spring Boot JSON-RPC integration, you can reuse our `jsonrpc-spring` module.
+
+xref:spring-boot.adoc[Read more.]

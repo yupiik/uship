@@ -15,7 +15,6 @@
  */
 package io.yupiik.uship.jsonrpc.core.api.service;
 
-import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonStructure;
 
@@ -29,8 +28,7 @@ import static java.util.stream.Collectors.toList;
  * Enables to extract all methods from a JSON-RPC request.
  * It is very useful to implement ACL in a service.
  */
-@ApplicationScoped
-public class JsonRpcExtractor extends SimpleJsonRpcExtractor {
+public class SimpleJsonRpcExtractor {
     public List<String> findJsonRpcMethods(final JsonStructure request) {
         return findJsonRpcMethods(request, obj -> Stream.of(obj.asJsonObject().getString("method")));
     }
