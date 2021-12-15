@@ -40,40 +40,34 @@ import org.springframework.context.event.EventListener;
 @EnableConfigurationProperties(JsonRpcConfiguration.class)
 public class JsonRpcBeans {
     @Bean
-    ServletRegistrationBean<BridgeJakarta2JavaxServlet> jsonRpcServlet(final Jsonb jsonb,
-                                                                       final SimpleJsonRpcHandler handler,
-                                                                       final ApplicationContext context,
-                                                                       final JsonRpcConfiguration configuration) {
-        final var servlet = new SimpleJsonRpcServlet();
-        servlet.setJsonb(jsonb);
-        servlet.setHandler(handler);
-        servlet.setBeforeExecutionEvent(context::publishEvent);
+    @ConditionalOnMissingBean
+    SpringJsonRpcServlet springJsonRpcServlet() {
+        return new SpringJsonRpcServlet();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(name = "jsonRpcServlet")
+    ServletRegistrationBean<BridgeJakarta2JavaxServlet> jsonRpcServlet(final JsonRpcConfiguration configuration,
+                                                                       final SpringJsonRpcServlet servlet) {
         return new ServletRegistrationBean<>(new BridgeJakarta2JavaxServlet(servlet), configuration.getBinding());
     }
 
     @Bean
-    SimpleJsonRpcMethodRegistry jsonRpcRegistry(final ApplicationContext context,
-                                                final JsonRpcConfiguration configuration) {
-        final var endpoints = context.getBeansWithAnnotation(JsonRpc.class).values();
-        final var registry = new SpringJsonRpcMethodRegistry();
-        registry.setJsonb(jsonb());
-        registry.setJsonProvider(jsonProvider());
-        registry.setJsonRpcInstances(endpoints);
-        registry.setBaseUrl(configuration.getBaseUrl());
-        return registry;
+    @ConditionalOnMissingBean
+    SimpleJsonRpcMethodRegistry jsonRpcRegistry() {
+        return new SpringJsonRpcMethodRegistry();
     }
 
     @Bean
+    @ConditionalOnMissingBean
     SimpleJsonRpcExtractor jsonRpcExtractor() {
         return new SimpleJsonRpcExtractor();
     }
 
     @Bean
+    @ConditionalOnMissingBean
     SimpleJsonRpcHandler jsonRpcHandler() {
-        final var handler = new SimpleJsonRpcHandler();
-        handler.setRegistry(jsonRpcRegistry(null, null));
-        handler.setJsonb(jsonb());
-        return handler;
+        return new SpringJsonRpcHandler();
     }
 
     @Bean
@@ -89,14 +83,65 @@ public class JsonRpcBeans {
                 .withPropertyOrderStrategy(PropertyOrderStrategy.LEXICOGRAPHICAL));
     }
 
+    private static class SpringJsonRpcServlet extends SimpleJsonRpcServlet {
+        @Override
+        @Autowired
+        public void setHandler(final SimpleJsonRpcHandler handler) {
+            super.setHandler(handler);
+        }
+
+        @Autowired
+        public void setApplicationContext(final ApplicationContext context) {
+            super.setBeforeExecutionEvent(context::publishEvent);
+        }
+
+        @Override
+        @Autowired
+        public void setJsonb(final Jsonb jsonb) {
+            super.setJsonb(jsonb);
+        }
+    }
+
+    private static class SpringJsonRpcHandler extends SimpleJsonRpcHandler {
+        @Override
+        @Autowired
+        public void setJsonb(final Jsonb jsonb) {
+            super.setJsonb(jsonb);
+        }
+
+        @Override
+        @Autowired
+        public void setRegistry(final SimpleJsonRpcMethodRegistry registry) {
+            super.setRegistry(registry);
+        }
+    }
+
     private static class SpringJsonRpcMethodRegistry extends SimpleJsonRpcMethodRegistry {
         @Autowired
         private JsonRpcConfiguration configuration;
 
+        @Autowired
+        private ApplicationContext context;
+
+        @Override
+        @Autowired
+        public void setJsonb(final Jsonb jsonb) {
+            super.setJsonb(jsonb);
+        }
+
+        @Override
+        @Autowired
+        public void setJsonProvider(final JsonProvider jsonProvider) {
+            super.setJsonProvider(jsonProvider);
+        }
+
         @EventListener
         public void onStart(final WebServerInitializedEvent initializedEvent) {
+            setJsonRpcInstances(context.getBeansWithAnnotation(JsonRpc.class).values());
             if ("auto".equals(configuration.getBaseUrl())) {
                 setBaseUrl("http://localhost:" + initializedEvent.getWebServer().getPort() + configuration.getBinding());
+            } else {
+                setBaseUrl(configuration.getBaseUrl());
             }
             super.init();
         }

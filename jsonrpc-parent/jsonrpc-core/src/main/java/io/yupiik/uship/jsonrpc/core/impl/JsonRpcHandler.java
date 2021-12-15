@@ -33,14 +33,4 @@ public class JsonRpcHandler extends SimpleJsonRpcHandler {
         super.setJsonb(jsonb);
         super.setRegistry(registry);
     }
-
-    @Override
-    public void setJsonb(final Jsonb jsonb) {
-        throw new UnsupportedOperationException("setJsonb only available in standalone, use SimpleJsonRpcHandler");
-    }
-
-    @Override
-    public void setRegistry(final SimpleJsonRpcMethodRegistry registry) {
-        throw new UnsupportedOperationException("setRegistry only available in standalone, use SimpleJsonRpcHandler");
-    }
 }

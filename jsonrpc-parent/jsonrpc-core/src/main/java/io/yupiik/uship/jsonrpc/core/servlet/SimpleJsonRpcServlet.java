@@ -37,15 +37,15 @@ public class SimpleJsonRpcServlet extends HttpServlet {
     private Consumer<JsonRpcBeforeExecution> beforeExecutionEvent;
     private Jsonb jsonb;
 
-    public void setHandler(final SimpleJsonRpcHandler handler) {
+    protected void setHandler(final SimpleJsonRpcHandler handler) {
         this.handler = handler;
     }
 
-    public void setBeforeExecutionEvent(final Consumer<JsonRpcBeforeExecution> beforeExecutionEvent) {
+    protected void setBeforeExecutionEvent(final Consumer<JsonRpcBeforeExecution> beforeExecutionEvent) {
         this.beforeExecutionEvent = beforeExecutionEvent;
     }
 
-    public void setJsonb(final Jsonb jsonb) {
+    protected void setJsonb(final Jsonb jsonb) {
         this.jsonb = jsonb;
     }
 

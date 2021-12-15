@@ -81,19 +81,19 @@ public class SimpleJsonRpcMethodRegistry {
     private OpenRPC openRPC;
     private Object2JsonSerializer toJsonValue;
 
-    public void setBaseUrl(final String baseUrl) {
+    protected void setBaseUrl(final String baseUrl) {
         this.baseUrl = baseUrl;
     }
 
-    public void setJsonb(final Jsonb jsonb) {
+    protected void setJsonb(final Jsonb jsonb) {
         this.jsonb = jsonb;
     }
 
-    public void setJsonProvider(final JsonProvider jsonProvider) {
+    protected void setJsonProvider(final JsonProvider jsonProvider) {
         this.jsonProvider = jsonProvider;
     }
 
-    public void setJsonRpcInstances(final Collection<Object> jsonRpcInstances) {
+    protected void setJsonRpcInstances(final Collection<Object> jsonRpcInstances) {
         this.jsonRpcInstances = jsonRpcInstances;
     }
 

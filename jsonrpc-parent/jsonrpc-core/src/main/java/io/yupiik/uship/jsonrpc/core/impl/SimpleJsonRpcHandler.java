@@ -52,12 +52,12 @@ public class SimpleJsonRpcHandler {
     private SimpleJsonRpcMethodRegistry registry;
     private Object2JsonSerializer toJsonValue;
 
-    public void setJsonb(final Jsonb jsonb) {
+    protected void setJsonb(final Jsonb jsonb) {
         this.jsonb = jsonb;
         this.toJsonValue = new Object2JsonSerializer(jsonb);
     }
 
-    public void setRegistry(final SimpleJsonRpcMethodRegistry registry) {
+    protected void setRegistry(final SimpleJsonRpcMethodRegistry registry) {
         this.registry = registry;
     }
 

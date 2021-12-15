@@ -27,8 +27,6 @@ import jakarta.json.spi.JsonProvider;
 import jakarta.servlet.ServletContext;
 import org.apache.coyote.AbstractProtocol;
 
-import java.util.Collection;
-
 import static java.util.stream.Collectors.toList;
 
 @ApplicationScoped
@@ -57,28 +55,6 @@ public class JsonRpcMethodRegistry extends SimpleJsonRpcMethodRegistry {
             }
         }
         super.init();
-    }
-
-    /* we enable it since it can need some tuning
-    @Override
-    public void setBaseUrl(final String baseUrl) {
-        throw new UnsupportedOperationException("CDI " + getClass().getName() + " is initialized with cdi");
-    }
-    */
-
-    @Override
-    public void setJsonb(final Jsonb jsonb) {
-        throw new UnsupportedOperationException("CDI " + getClass().getName() + " is initialized with cdi");
-    }
-
-    @Override
-    public void setJsonProvider(final JsonProvider jsonProvider) {
-        throw new UnsupportedOperationException("CDI " + getClass().getName() + " is initialized with cdi");
-    }
-
-    @Override
-    public void setJsonRpcInstances(final Collection<Object> jsonRpcInstances) {
-        throw new UnsupportedOperationException("CDI " + getClass().getName() + " is initialized with cdi");
     }
 
     private static class LazyBaseUrlFinder {
