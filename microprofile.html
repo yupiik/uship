@@ -83,9 +83,81 @@
 <div class="sect1">
 <h2 id="_for_microprofile_servers_with_servlet_layer">For Microprofile servers with Servlet layer</h2>
 <div class="sectionbody">
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+this is for jakarta based Microprofile servers, for javax one you need to redefine a few beans, you can check out jsonrpc-quarkus module for a sample.
+</td>
+</tr>
+</table>
+</div>
 <div class="paragraph">
-<p>Then to enable the server you can create a <code>META-INF/services/jakarta.servlet.ServletContainerInitializer</code> file in your resources registering <code>io.yupiik.uship.jsonrpc.core.servlet.JsonRpcServletRegistration</code> servlet.
+<p>To enable the server you can create a <code>META-INF/services/jakarta.servlet.ServletContainerInitializer</code> file in your resources registering <code>io.yupiik.uship.jsonrpc.core.servlet.JsonRpcServletRegistration</code> servlet.
 If you don&#8217;t want to bind <code>/jsonrpc</code> servlet, just register the servlet yourself on another binding instead of reusing default one.</p>
+</div>
+<div class="paragraph">
+<p>The complete dependency set would look like:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="xml" class="language-xml hljs">&lt;!-- jsonrpc --&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;io.yupiik.uship&lt;/groupId&gt;
+  &lt;artifactId&gt;backbone-johnzon&lt;/artifactId&gt;
+  &lt;version&gt;${uship.version}&lt;/version&gt;
+  &lt;exclusions&gt;
+    &lt;exclusion&gt;
+      &lt;groupId&gt;*&lt;/groupId&gt;
+      &lt;artifactId&gt;*&lt;/artifactId&gt;
+    &lt;/exclusion&gt;
+  &lt;/exclusions&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;io.yupiik.uship&lt;/groupId&gt;
+  &lt;artifactId&gt;jsonrpc-core&lt;/artifactId&gt;
+  &lt;version&gt;${uship.version}&lt;/version&gt;
+  &lt;exclusions&gt;
+    &lt;exclusion&gt;
+      &lt;groupId&gt;io.yupiik.uship&lt;/groupId&gt;
+      &lt;artifactId&gt;webserver-cdi&lt;/artifactId&gt;
+    &lt;/exclusion&gt;
+    &lt;exclusion&gt;
+      &lt;groupId&gt;io.yupiik.uship&lt;/groupId&gt;
+      &lt;artifactId&gt;cdi-dependencies&lt;/artifactId&gt;
+    &lt;/exclusion&gt;
+    &lt;exclusion&gt;
+      &lt;groupId&gt;io.yupiik.uship&lt;/groupId&gt;
+      &lt;artifactId&gt;backbone-owb&lt;/artifactId&gt;
+    &lt;/exclusion&gt;
+    &lt;exclusion&gt;
+      &lt;groupId&gt;io.yupiik.uship&lt;/groupId&gt;
+      &lt;artifactId&gt;json-dependencies&lt;/artifactId&gt;
+    &lt;/exclusion&gt;
+    &lt;exclusion&gt;
+      &lt;groupId&gt;io.yupiik.uship&lt;/groupId&gt;
+      &lt;artifactId&gt;backbone-johnzon&lt;/artifactId&gt;
+    &lt;/exclusion&gt;
+  &lt;/exclusions&gt;
+&lt;/dependency&gt;
+
+&lt;!-- replace with your microprofile server --&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;org.apache.meecrowave&lt;/groupId&gt;
+  &lt;artifactId&gt;meecrowave-core&lt;/artifactId&gt;
+  &lt;version&gt;1.2.13&lt;/version&gt;
+  &lt;classifier&gt;jakarta&lt;/classifier&gt;
+  &lt;exclusions&gt;
+    &lt;exclusion&gt;
+      &lt;groupId&gt;*&lt;/groupId&gt;
+      &lt;artifactId&gt;*&lt;/artifactId&gt;
+    &lt;/exclusion&gt;
+  &lt;/exclusions&gt;
+&lt;/dependency&gt;</code></pre>
+</div>
 </div>
 </div>
 </div>
