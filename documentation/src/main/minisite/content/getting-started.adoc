@@ -81,6 +81,6 @@ xref:quarkus.adoc[Read more.]
 
 == Microprofile
 
-If you want a Quarkus JSON-RPC integration, you can reuse our `jsonrpc-quarkus` module.
+If you want a Microprofile JSON-RPC integration, you can reuse our `jsonrpc-core` module with some minimal setup.
 
 xref:microprofile.adoc[Read more.]
