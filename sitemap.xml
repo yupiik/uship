@@ -2,30 +2,34 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
     <url>
         <loc>//yupiik.github.io/uship/getting-started.html</loc>
-        <lastmod>2021-12-15</lastmod>
+        <lastmod>2021-12-16</lastmod>
     </url>
     <url>
         <loc>//yupiik.github.io/uship/http-client.html</loc>
-        <lastmod>2021-12-15</lastmod>
+        <lastmod>2021-12-16</lastmod>
     </url>
     <url>
         <loc>//yupiik.github.io/uship/http-server.html</loc>
-        <lastmod>2021-12-15</lastmod>
+        <lastmod>2021-12-16</lastmod>
+    </url>
+    <url>
+        <loc>//yupiik.github.io/uship/quarkus.html</loc>
+        <lastmod>2021-12-16</lastmod>
     </url>
     <url>
         <loc>//yupiik.github.io/uship/spring-boot.html</loc>
-        <lastmod>2021-12-15</lastmod>
+        <lastmod>2021-12-16</lastmod>
     </url>
     <url>
         <loc>//yupiik.github.io/uship/packaging.html</loc>
-        <lastmod>2021-12-15</lastmod>
+        <lastmod>2021-12-16</lastmod>
     </url>
     <url>
         <loc>//yupiik.github.io/uship/testing.html</loc>
-        <lastmod>2021-12-15</lastmod>
+        <lastmod>2021-12-16</lastmod>
     </url>
     <url>
         <loc>//yupiik.github.io/uship/development-stack.html</loc>
-        <lastmod>2021-12-15</lastmod>
+        <lastmod>2021-12-16</lastmod>
     </url>
 </urlset>

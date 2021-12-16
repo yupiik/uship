@@ -3,7 +3,7 @@
 <body>
 
 <head>
-    <title>Spring Boot</title>
+    <title>Quarkus</title>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -65,28 +65,25 @@
             </ul>
         </div>
 
-        <div id="spring-boot-html-container" class="container page-content spring-boot-html">
+        <div id="quarkus-html-container" class="container page-content quarkus-html">
                         <div class="page-header">
-                <h1>Spring Boot</h1>
+                <h1>Quarkus</h1>
             </div>
             <div class="page-content-body">
                 <div class="paragraph">
-<p>JSON-RPC server is integrated with Spring Boot.</p>
+<p>JSON-RPC server is integrated with Quarkus.</p>
 </div>
 <div class="paragraph">
-<p>The entry point is the module <code>io.yupiik.uship:jsonrpc-spring</code>.
+<p>The entry point is the module <code>io.yupiik.uship:jsonrpc-quarkus</code>.
 Once added you can:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>mark your application with <code>@EnableJsonRpc</code>,</p>
-</li>
-<li>
 <p>implement JSON-RPC methods using beans marked with <code>@JsonRpc</code> and methods with <code>@JsonRpcMethod</code>,</p>
 </li>
 <li>
-<p>configure the base url of the OpenRPC value using <code>jsonrpc.baseUrl</code> and binding url of the JSON-RPC endpoint with <code>jsonrpc.binding</code> in your application.properties (default uses the spring web server).</p>
+<p>configure the base url of the OpenRPC value using <code>jsonrpc.baseUrl</code> (defaults to try to use localhost and the quarkus port) and <code>jsonrpc.binding</code> to configure the servlet binding in microprofile-config (<code>application.properties</code>), it defaults to <code>/jsonrpc</code>.</p>
 </li>
 </ul>
 </div>
@@ -95,16 +92,8 @@ Once added you can:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@EnableJsonRpc
-@SpringBootApplication
-public class MyApp {
-    @Bean
-    MyEndpoints endpoints() {
-        return new MyEndpoints();
-    }
-}
-
-@JsonRpc
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@JsonRpc
+@ApplicationScoped
 public class MyEndpoints {
     @JsonRpcMethod(name = "reverse")
     public String reverse(@JsonRpcParam(value = "in") final String input) {
