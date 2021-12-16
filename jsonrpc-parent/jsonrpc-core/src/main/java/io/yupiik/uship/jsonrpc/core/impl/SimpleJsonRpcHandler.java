@@ -61,6 +61,10 @@ public class SimpleJsonRpcHandler {
         this.registry = registry;
     }
 
+    public JsonStructure readRequest(final HttpServletRequest request, final Reader reader) throws IOException {
+        return readRequest(reader);
+    }
+
     public JsonStructure readRequest(final Reader reader) throws IOException {
         try (final var in = reader) {
             return jsonb.fromJson(in, JsonStructure.class);

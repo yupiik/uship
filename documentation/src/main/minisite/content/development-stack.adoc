@@ -219,6 +219,128 @@ Then add new exec build plugin instructions:
 <.> Will generate a textual (Asciidoctor) documentation of your contract from the classes listed in the arguments,
 <.> Will generate an OpenRPC (JSON) contract from the classes listed in the arguments.
 
+== Optimize your JSON-RPC execution
+
+As with any bulk friendly solution, you can optimize the JSON-RPC execution by implementing a kind of "execution plan" for the request.
+There are several cases it can be useful:
+
+. You receive a bulk request (array) which does N > 1 atomic findById and want to replace it by a single `findByIds`,
+. You have a custom bulk method,
+. You have a bulk request which can be optimized merging multiple requests (in this case the result of the first one can be dropped and only the last one will be used for ex.).
+
+Let's take a concrete example:
+
+You receive:
+
+[source,json]
+----
+[
+  {"jsonrpc":"2.0","method":"entityfindById","params":{"id":"1"}},
+  {"jsonrpc":"2.0","method":"entityfindById","params":{"id":"2"}}
+]
+----
+
+If you keep it this way you will do 2 queries (assume SQL ones for example).
+The idea is to replace them by an alternative execution which would do a single query.
+
+One option, if you already have a method enabling that is to replace the method and then dispatch the results:
+
+[source,json]
+----
+[
+  {"jsonrpc":"2.0","method":"entityfindByIds","params":{"ids":["1","2"]}}
+]
+----
+
+This can be done rewritting the request this way:
+
+[source,java]
+----
+@Specializes
+@ApplicationScoped
+public class EnrichedJsonRpcHandler extends JsonRpcHandler {
+    @Inject
+    private RequestRewriter requestRewriter; // your own impl
+
+    @Override
+    public JsonStructure readRequest(final HttpServletRequest request, final Reader reader) throws IOException {
+        return requestRewriter.rewrite(request::setAttribute, super.readRequest(reader));
+    }
+}
+----
+
+The issue then is to dispatch the result since instead of having 2 `findById` results you get a single one `findByIds`.
+The trick there is to pass a state in the `HttpServletRequest` as attribute and use it in `handleRequest` to be able to process the output:
+
+[source,java]
+----
+@Specializes
+@ApplicationScoped
+public class EnrichedJsonRpcHandler extends JsonRpcHandler {
+    @Inject
+    private RequestRewriter requestRewriter;
+
+    @Override
+    public JsonStructure readRequest(final HttpServletRequest request, final Reader reader) throws IOException {
+        return requestRewriter.preProcess(request::setAttribute, super.readRequest(reader)); <1>
+    }
+
+    @Override
+    public CompletionStage<Response> handleRequest(final JsonObject request,
+                                                   final HttpServletRequest httpRequest,
+                                                   final HttpServletResponse httpResponse) {
+        return super.handleRequest(request, httpRequest, httpResponse)
+                .thenApply(res -> requestRewriter.postProcess(httpRequest::getAttribute, res)); <2>
+    }
+}
+----
+<.> We rewrite the request before its execution,
+<.> We process the response after its execution (take care to error cases).
+
+As a guide, here is a skeleton for the request rewritter:
+
+[source,java]
+----
+@ApplicationScoped
+public class RequestRewriter {
+    public JsonStructure preProcess(final BiConsumer<String, Object> attributeSetter, final JsonStructure structure) {
+        if (isFindByIds(structure)) { // if it a rewritten request
+            // store the post process callback - enables to have a generic postProcess
+            attributeSetter.accept("RequestRewriter.postProcess", (Function<Response, Response>) this::dispatchFindByIds);
+            // rewrite the request
+            return flattenFindByIds(structure);
+        }
+        return structure;
+    }
+
+    public Response postProcess(final Function<String, Object> attributeGetter, final Response result) {
+        return ofNullable(attributeGetter.apply("RequestRewriter.postProcess"))
+                .map(it ->  (Function<Response, Response>) it)
+                .map(it -> it.apply(result))
+                .orElse(result);
+    }
+}
+----
+
+An alternative is to just override `handleRequest` to implement there the alternative execution paths:
+
+[source,java]
+----
+@Specializes
+@ApplicationScoped
+public class EnrichedJsonRpcHandler extends JsonRpcHandler {
+    @Override
+    public CompletionStage<Response> handleRequest(final JsonObject request,
+                                                   final HttpServletRequest httpRequest,
+                                                   final HttpServletResponse httpResponse) {
+        if (shouldBeRewritten(request)) { // to define with your rules
+            return alternativeImplementation(request);
+        }
+        return super.handleRequest(request, httpRequest, httpResponse);
+    }
+}
+----
+
 == Postman collection for JSON-RPC endpoint
 
 Similarly to Asciidoctor documentation you can generate a collection of JSON-RPC requests using `PostmanCollectionGenerator` main.

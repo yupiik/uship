@@ -53,7 +53,7 @@ public class SimpleJsonRpcServlet extends HttpServlet {
     protected void service(final HttpServletRequest req, final HttpServletResponse resp) throws IOException {
         final JsonStructure request;
         try {
-            request = handler.readRequest(req.getReader());
+            request = handler.readRequest(req, req.getReader());
         } catch (final JsonbException | JsonException jsonbEx) {
             forwardResponse(handler.createResponse(null, -32700, jsonbEx.getMessage()), resp);
             return;
