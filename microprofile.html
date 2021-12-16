@@ -3,15 +3,14 @@
 <body>
 
 <head>
-    <title>Getting Started</title>
+    <title>Microprofile</title>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="A light microservice stack.">
     <meta name="author" content="Yupiik Minisite Generator">
     <meta name="generator" content="Yupiik Minisite Generator">
-    <meta name="keywords" content="Uship, microservice, getting started">
-
+    
     <link rel="shortcut icon" href="//www.yupiik.com/img/favicon.png">
 
     <link href="//fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,700,700i|Montserrat:300,400,500,700" rel="stylesheet">
@@ -66,32 +65,20 @@
             </ul>
         </div>
 
-        <div id="getting-started-html-container" class="container page-content getting-started-html">
+        <div id="microprofile-html-container" class="container page-content microprofile-html">
                         <div class="page-header">
-                <h1>Getting Started</h1>
+                <h1>Microprofile</h1>
             </div>
             <div class="page-content-body">
-                <div id="preamble">
-<div class="sectionbody">
-<div class="quoteblock abstract">
-<blockquote>
-Uship (µship) is a lightweight microservice stack for modern applications.
-</blockquote>
+                <div class="paragraph">
+<p>JSON-RPC server can easily be integrated with a Microprofile server.</p>
 </div>
+<div class="paragraph">
+<p>The entry point is the module <code>io.yupiik.uship:jsonrpc-core</code>.</p>
 </div>
-</div>
-<div class="sect1">
-<h2 id="_pre_requisites">Pre-requisites</h2>
-<div class="sectionbody">
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Ensure to use java &gt;= 11</p>
-</li>
-<li>
-<p>(Optional) Ensure to use a dependency manager such as Apache Maven/Gradle/SBT or Apache Ivy.</p>
-</li>
-</ol>
+<div class="paragraph">
+<p>Then to enable the server you can create a <code>META-INF/services/jakarta.servlet.ServletContainerInitializer</code> file in your resources registering <code>io.yupiik.uship.jsonrpc.core.servlet.JsonRpcServletRegistration</code> servlet.
+If you don&#8217;t want to bind <code>/jsonrpc</code> servlet, just register the servlet yourself on another binding instead of reusing default one.</p>
 </div>
 <div class="admonitionblock tip">
 <table>
@@ -100,164 +87,33 @@ Uship (µship) is a lightweight microservice stack for modern applications.
 <div class="title">Tip</div>
 </td>
 <td class="content">
-using <a href="https://sdkman.io/">SDKMan</a> can greatly simplify the installation.
+if you use one of the very rare Microprofile server not having a servlet layer you can need to register the servlet different or a <code>@POST</code> JAX-RS endpoint delegating to <code>JsonRpcServlet</code> (but this is generally not needed):
 </td>
 </tr>
 </table>
 </div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Path("jsonrpc")
+@ApplicationScoped
+public class JsonRpcTransport {
+    @Inject
+    private JsonRpcHandler handler;
+
+    @POST
+    public CompletionStage&lt;String&gt; post(final JsonStructure req) {
+        // see io.yupiik.uship.jsonrpc.core.servlet.SimpleJsonRpcServlet.service for details
+        return handler.execute(
+            req,
+            // if you have http servlet request/response available as @Context injections you can pass them here
+            null, null)
+            .thenApply(res -&gt; jsonb.toJson(res));
+    }
+}</code></pre>
 </div>
-</div>
-<div class="sect1">
-<h2 id="_development_stack">Development stack</h2>
-<div class="sectionbody">
-<div class="paragraph">
-<p>The goal of µShip is to promote and enable JSON-RPC development at scale.
-For that it provides a CDI-Servlet integration module known as <code>jsonrpc-core</code> module.</p>
-</div>
-<div class="paragraph">
-<p>However, µShip also provides all the underlying stack to make it functional such as:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>An embedded Servlet container (Apache Tomcat),</p>
-</li>
-<li>
-<p>JSON-P/JSON-B integration modules,</p>
-</li>
-<li>
-<p>JSON-RPC API/implementation and documentation utilities.</p>
-</li>
-</ul>
-</div>
-<div class="admonitionblock tip">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Tip</div>
-</td>
-<td class="content">
-as of today, µShip does not go further - as providing a configuration/openmetrics/opentracing/JWT integration since these ones can easily be added using CDI libraries.
-It will probably be tackled in a few versions but was not a pre-requisite of the project.
-</td>
-</tr>
-</table>
 </div>
 <div class="paragraph">
-<p><a href="development-stack.html">Read more.</a></p>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_deployment_capabilitiesintegration">Deployment capabilities/integration</h2>
-<div class="sectionbody">
-<div class="paragraph">
-<p>By using CDI standalone (a.k.a. CDI SE) and an embedded Apache Tomcat, µShip enables to deliver application as:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Assemblies (just use <code>java -cp folder-with-dependencies-and-application-jars/*.jar com.app.YourMain</code> - or reuse µShip main),</p>
-</li>
-<li>
-<p>Docker images using <code>jib-maven-plugin</code>.</p>
-</li>
-</ul>
-</div>
-<div class="admonitionblock tip">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Tip</div>
-</td>
-<td class="content">
-by using a flat classpath, µShip is perfectly compatible with java CDS which boosts a lot the startup in general, don&#8217;t hesitate to set it up if you care to start in less than a second.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p><a href="packaging.html">Read more.</a></p>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_testing">Testing</h2>
-<div class="sectionbody">
-<div class="paragraph">
-<p>Once again, by using a plain CDI base, testing is made easy and compatible with Apache OpenWebBeans tooling.</p>
-</div>
-<div class="paragraph">
-<p><a href="testing.html">Read more.</a></p>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_http_server">HTTP Server</h2>
-<div class="sectionbody">
-<div class="paragraph">
-<p>Once again, by using a plain CDI base, testing is made easy and compatible with Apache OpenWebBeans tooling.</p>
-</div>
-<div class="paragraph">
-<p><a href="http-server.html">Read more.</a></p>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_http_client">HTTP Client</h2>
-<div class="sectionbody">
-<div class="paragraph">
-<p>UShip extends the JVM <code>HttpClient</code> to provide a few more features and callbacks.
-It also provides a Kubernetes client module which auto-setup a <code>HttpClient</code> from a POD.</p>
-</div>
-<div class="paragraph">
-<p><a href="http-client.html">Read more.</a></p>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_persistence">Persistence</h2>
-<div class="sectionbody">
-<div class="paragraph">
-<p>UShip provides a convenient JDBC light mapper.</p>
-</div>
-<div class="paragraph">
-<p><a href="development-stack.html#_persistence">Read more.</a></p>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_spring_boot">Spring Boot</h2>
-<div class="sectionbody">
-<div class="paragraph">
-<p>If you want a Spring Boot JSON-RPC integration, you can reuse our <code>jsonrpc-spring</code> module.</p>
-</div>
-<div class="paragraph">
-<p><a href="spring-boot.html">Read more.</a></p>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_quarkus">Quarkus</h2>
-<div class="sectionbody">
-<div class="paragraph">
-<p>If you want a Quarkus JSON-RPC integration, you can reuse our <code>jsonrpc-quarkus</code> module.</p>
-</div>
-<div class="paragraph">
-<p><a href="quarkus.html">Read more.</a></p>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_quarkus_2">Quarkus</h2>
-<div class="sectionbody">
-<div class="paragraph">
-<p>If you want a Quarkus JSON-RPC integration, you can reuse our <code>jsonrpc-quarkus</code> module.</p>
-</div>
-<div class="paragraph">
-<p><a href="microprofile.html">Read more.</a></p>
-</div>
-</div>
+<p>Once done you can implement JSON-RPC methods using beans marked with <code>@JsonRpc</code> and methods with <code>@JsonRpcMethod</code> as in plain UShip server,</p>
 </div>
                 
             </div>
