@@ -197,7 +197,7 @@ public class SimpleJsonRpcMethodRegistry {
 
     private Class<?> extractClass(final Object bean) {
         Class<?> c = bean == null ? Object.class : bean.getClass();
-        while (c != null && c.getName().contains("$$")) {
+        while (c != null && (c.getName().contains("$$") || c.getName().contains("_"))) {
             c = c.getSuperclass();
         }
         return c == null ? Object.class : c;
@@ -300,7 +300,7 @@ public class SimpleJsonRpcMethodRegistry {
 
     public void registerMethodFromService(final Object instance) {
         Class<?> clazz = instance.getClass();
-        while (clazz != null && clazz.getName().contains("$$")) { // proxy
+        while (clazz != null && (clazz.getName().contains("$$") || clazz.getName().endsWith("_ClientProxy"))) { // proxies
             clazz = clazz.getSuperclass();
         }
         registerMethodFromService(clazz == null ? instance.getClass() : clazz, instance);

@@ -72,3 +72,9 @@ xref:development-stack.adoc#_persistence[Read more.]
 If you want a Spring Boot JSON-RPC integration, you can reuse our `jsonrpc-spring` module.
 
 xref:spring-boot.adoc[Read more.]
+
+== Quarkus
+
+If you want a Quarkus JSON-RPC integration, you can reuse our `jsonrpc-quarkus` module.
+
+xref:quarkus.adoc[Read more.]
