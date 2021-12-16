@@ -169,7 +169,7 @@ If you don&#8217;t want to bind <code>/jsonrpc</code> servlet, just register the
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>@Path("jsonrpc")
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Path("jsonrpc")
 @ApplicationScoped
 public class JsonRpcTransport {
     @Inject
@@ -184,7 +184,7 @@ public class JsonRpcTransport {
                 null, null
             ).thenApply(res -&gt; jsonb.toJson(res));
     }
-}</pre>
+}</code></pre>
 </div>
 </div>
 <div class="paragraph">
