@@ -39,12 +39,13 @@
   <modules>
     <module>webserver-parent</module>
     <module>backbone-parent</module>
+    <module>servlet-jakarta-javax-bridge</module>
     <module>jsonrpc-parent</module>
+    <module>httpclient-parent</module>
+    <module>persistence</module>
     <module>bom</module>
     <module>documentation</module>
     <module>samples</module>
-    <module>httpclient-parent</module>
-    <module>persistence</module>
   </modules>
 
   <dependencies>

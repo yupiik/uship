@@ -13,7 +13,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package io.yupiik.uship.jsonrpc.spring.impl;
+package io.yupiik.uship.jakartajavax.bridge;
+
 
 import jakarta.servlet.AsyncContext;
 import jakarta.servlet.AsyncListener;
@@ -63,7 +64,6 @@ import java.util.stream.Stream;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
-// todo: extract in a dedicated module? for now it is 100% delegation or UnsupportedOperationException (to drop to extract)
 public class BridgeJakarta2JavaxServlet extends HttpServlet {
     private final jakarta.servlet.http.HttpServlet delegate;
     private jakarta.servlet.ServletConfig configBridge;
@@ -1537,3 +1537,4 @@ public class BridgeJakarta2JavaxServlet extends HttpServlet {
         }
     }
 }
+

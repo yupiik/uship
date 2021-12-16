@@ -15,6 +15,7 @@
  */
 package io.yupiik.uship.jsonrpc.spring.impl;
 
+import io.yupiik.uship.jakartajavax.bridge.BridgeJakarta2JavaxServlet;
 import io.yupiik.uship.jsonrpc.core.api.JsonRpc;
 import io.yupiik.uship.jsonrpc.core.api.service.SimpleJsonRpcExtractor;
 import io.yupiik.uship.jsonrpc.core.impl.SimpleJsonRpcHandler;
