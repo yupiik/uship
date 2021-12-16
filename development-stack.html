@@ -369,6 +369,157 @@ the JSON-RPC implementation supports by position calls (parameters are passed in
 </div>
 </div>
 <div class="sect1">
+<h2 id="_optimize_your_json_rpc_execution">Optimize your JSON-RPC execution</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>As with any bulk friendly solution, you can optimize the JSON-RPC execution by implementing a kind of "execution plan" for the request.
+There are several cases it can be useful:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>You receive a bulk request (array) which does N &gt; 1 atomic findById and want to replace it by a single <code>findByIds</code>,</p>
+</li>
+<li>
+<p>You have a custom bulk method,</p>
+</li>
+<li>
+<p>You have a bulk request which can be optimized merging multiple requests (in this case the result of the first one can be dropped and only the last one will be used for ex.).</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s take a concrete example:</p>
+</div>
+<div class="paragraph">
+<p>You receive:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="json" class="language-json hljs">[
+  {"jsonrpc":"2.0","method":"entityfindById","params":{"id":"1"}},
+  {"jsonrpc":"2.0","method":"entityfindById","params":{"id":"2"}}
+]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If you keep it this way you will do 2 queries (assume SQL ones for example).
+The idea is to replace them by an alternative execution which would do a single query.</p>
+</div>
+<div class="paragraph">
+<p>One option, if you already have a method enabling that is to replace the method and then dispatch the results:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="json" class="language-json hljs">[
+  {"jsonrpc":"2.0","method":"entityfindByIds","params":{"ids":["1","2"]}}
+]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This can be done rewritting the request this way:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Specializes
+@ApplicationScoped
+public class EnrichedJsonRpcHandler extends JsonRpcHandler {
+    @Inject
+    private RequestRewriter requestRewriter; // your own impl
+
+    @Override
+    public JsonStructure readRequest(final HttpServletRequest request, final Reader reader) throws IOException {
+        return requestRewriter.rewrite(request::setAttribute, super.readRequest(reader));
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The issue then is to dispatch the result since instead of having 2 <code>findById</code> results you get a single one <code>findByIds</code>.
+The trick there is to pass a state in the <code>HttpServletRequest</code> as attribute and use it in <code>handleRequest</code> to be able to process the output:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Specializes
+@ApplicationScoped
+public class EnrichedJsonRpcHandler extends JsonRpcHandler {
+    @Inject
+    private RequestRewriter requestRewriter;
+
+    @Override
+    public JsonStructure readRequest(final HttpServletRequest request, final Reader reader) throws IOException {
+        return requestRewriter.preProcess(request::setAttribute, super.readRequest(reader)); <b class="conum">(1)</b>
+    }
+
+    @Override
+    public CompletionStage&lt;Response&gt; handleRequest(final JsonObject request,
+                                                   final HttpServletRequest httpRequest,
+                                                   final HttpServletResponse httpResponse) {
+        return super.handleRequest(request, httpRequest, httpResponse)
+                .thenApply(res -&gt; requestRewriter.postProcess(httpRequest::getAttribute, res)); <b class="conum">(2)</b>
+    }
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>We rewrite the request before its execution,</p>
+</li>
+<li>
+<p>We process the response after its execution (take care to error cases).</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>As a guide, here is a skeleton for the request rewritter:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@ApplicationScoped
+public class RequestRewriter {
+    public JsonStructure preProcess(final BiConsumer&lt;String, Object&gt; attributeSetter, final JsonStructure structure) {
+        if (isFindByIds(structure)) { // if it a rewritten request
+            // store the post process callback - enables to have a generic postProcess
+            attributeSetter.accept("RequestRewriter.postProcess", (Function&lt;Response, Response&gt;) this::dispatchFindByIds);
+            // rewrite the request
+            return flattenFindByIds(structure);
+        }
+        return structure;
+    }
+
+    public Response postProcess(final Function&lt;String, Object&gt; attributeGetter, final Response result) {
+        return ofNullable(attributeGetter.apply("RequestRewriter.postProcess"))
+                .map(it -&gt;  (Function&lt;Response, Response&gt;) it)
+                .map(it -&gt; it.apply(result))
+                .orElse(result);
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>An alternative is to just override <code>handleRequest</code> to implement there the alternative execution paths:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Specializes
+@ApplicationScoped
+public class EnrichedJsonRpcHandler extends JsonRpcHandler {
+    @Override
+    public CompletionStage&lt;Response&gt; handleRequest(final JsonObject request,
+                                                   final HttpServletRequest httpRequest,
+                                                   final HttpServletResponse httpResponse) {
+        if (shouldBeRewritten(request)) { // to define with your rules
+            return alternativeImplementation(request);
+        }
+        return super.handleRequest(request, httpRequest, httpResponse);
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
 <h2 id="_postman_collection_for_json_rpc_endpoint">Postman collection for JSON-RPC endpoint</h2>
 <div class="sectionbody">
 <div class="paragraph">
