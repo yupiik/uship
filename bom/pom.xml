@@ -78,6 +78,16 @@
         <version>${project.version}</version>
       </dependency>
       <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>servlet-jakarta-javax-bridge</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>persistence</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
         <groupId>org.apache.openwebbeans</groupId>
         <artifactId>openwebbeans-junit5</artifactId>
         <version>${owb.version}</version>
