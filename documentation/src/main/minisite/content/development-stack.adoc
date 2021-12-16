@@ -330,13 +330,11 @@ An alternative is to just override `handleRequest` to implement there the altern
 @ApplicationScoped
 public class EnrichedJsonRpcHandler extends JsonRpcHandler {
     @Override
-    public CompletionStage<Response> handleRequest(final JsonObject request,
-                                                   final HttpServletRequest httpRequest,
-                                                   final HttpServletResponse httpResponse) {
+    public CompletionStage<?> execute(final JsonStructure request, final HttpServletRequest httpRequest, final HttpServletResponse httpResponse) {
         if (shouldBeRewritten(request)) { // to define with your rules
             return alternativeImplementation(request);
         }
-        return super.handleRequest(request, httpRequest, httpResponse);
+        return super.execute(request, httpRequest, httpResponse);
     }
 }
 ----
