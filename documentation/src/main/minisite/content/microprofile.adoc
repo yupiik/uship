@@ -74,6 +74,7 @@ The complete dependency set would look like:
 
 If you use one of the very rare Microprofile server not having a servlet layer you can need to register the servlet different or a `@POST` JAX-RS endpoint delegating to `JsonRpcServlet` (but this is generally not needed):
 
+[source,java]
 ----
 @Path("jsonrpc")
 @ApplicationScoped
