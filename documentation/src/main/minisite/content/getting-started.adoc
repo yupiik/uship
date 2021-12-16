@@ -78,3 +78,9 @@ xref:spring-boot.adoc[Read more.]
 If you want a Quarkus JSON-RPC integration, you can reuse our `jsonrpc-quarkus` module.
 
 xref:quarkus.adoc[Read more.]
+
+== Microprofile
+
+If you want a Quarkus JSON-RPC integration, you can reuse our `jsonrpc-quarkus` module.
+
+xref:microprofile.adoc[Read more.]

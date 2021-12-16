@@ -1,0 +1,96 @@
+= Microprofile
+
+JSON-RPC server can easily be integrated with a Microprofile server.
+
+The entry point is the module `io.yupiik.uship:jsonrpc-core`.
+
+== For Microprofile servers with Servlet layer
+
+IMPORTANT: this is for jakarta based Microprofile servers, for javax one you need to redefine a few beans, you can check out jsonrpc-quarkus module for a sample.
+
+To enable the server you can create a `META-INF/services/jakarta.servlet.ServletContainerInitializer` file in your resources registering `io.yupiik.uship.jsonrpc.core.servlet.JsonRpcServletRegistration` servlet.
+If you don't want to bind `/jsonrpc` servlet, just register the servlet yourself on another binding instead of reusing default one.
+
+The complete dependency set would look like:
+
+[source,xml]
+----
+<!-- jsonrpc -->
+<dependency>
+  <groupId>io.yupiik.uship</groupId>
+  <artifactId>backbone-johnzon</artifactId>
+  <version>${uship.version}</version>
+  <exclusions>
+    <exclusion>
+      <groupId>*</groupId>
+      <artifactId>*</artifactId>
+    </exclusion>
+  </exclusions>
+</dependency>
+<dependency>
+  <groupId>io.yupiik.uship</groupId>
+  <artifactId>jsonrpc-core</artifactId>
+  <version>${uship.version}</version>
+  <exclusions>
+    <exclusion>
+      <groupId>io.yupiik.uship</groupId>
+      <artifactId>webserver-cdi</artifactId>
+    </exclusion>
+    <exclusion>
+      <groupId>io.yupiik.uship</groupId>
+      <artifactId>cdi-dependencies</artifactId>
+    </exclusion>
+    <exclusion>
+      <groupId>io.yupiik.uship</groupId>
+      <artifactId>backbone-owb</artifactId>
+    </exclusion>
+    <exclusion>
+      <groupId>io.yupiik.uship</groupId>
+      <artifactId>json-dependencies</artifactId>
+    </exclusion>
+    <exclusion>
+      <groupId>io.yupiik.uship</groupId>
+      <artifactId>backbone-johnzon</artifactId>
+    </exclusion>
+  </exclusions>
+</dependency>
+
+<!-- replace with your microprofile server -->
+<dependency>
+  <groupId>org.apache.meecrowave</groupId>
+  <artifactId>meecrowave-core</artifactId>
+  <version>1.2.13</version>
+  <classifier>jakarta</classifier>
+  <exclusions>
+    <exclusion>
+      <groupId>*</groupId>
+      <artifactId>*</artifactId>
+    </exclusion>
+  </exclusions>
+</dependency>
+----
+
+== Your microprofile server does not have Servlet layer
+
+If you use one of the very rare Microprofile server not having a servlet layer you can need to register the servlet different or a `@POST` JAX-RS endpoint delegating to `JsonRpcServlet` (but this is generally not needed):
+
+----
+@Path("jsonrpc")
+@ApplicationScoped
+public class JsonRpcTransport {
+    @Inject
+    private JsonRpcHandler handler;
+
+    @POST
+    public CompletionStage<String> post(final JsonStructure jsonRpcRequest) {
+        // see io.yupiik.uship.jsonrpc.core.servlet.SimpleJsonRpcServlet.service() for details
+        return handler.execute(
+                jsonRpcRequest,
+                // if you have http servlet request/response available as @Context injections you can pass them here
+                null, null
+            ).thenApply(res -> jsonb.toJson(res));
+    }
+}
+----
+
+Once done you can implement JSON-RPC methods using beans marked with `@JsonRpc` and methods with `@JsonRpcMethod` as in plain UShip server,
