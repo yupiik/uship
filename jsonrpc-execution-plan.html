@@ -222,7 +222,7 @@ public class EnrichedJsonRpcHandler extends JsonRpcHandler {
                     response.setJsonrpc("2.0");
 
                     final var id = reqIterator.next().get("id");
-                    if (id != null) {
+                    if (id != null) { // propagate request id if the client uses it to reconcile the responses
                         response.setId(id);
                     }
 
