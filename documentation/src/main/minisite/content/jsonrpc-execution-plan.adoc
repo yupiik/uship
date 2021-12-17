@@ -4,6 +4,8 @@ On this page we want to implement a first optimization on our JSON-RPC server.
 
 WARNING: this page will not go through the complete details of such optimization and only consider the pure case where all requests match but a real implement could group requests to still optimize the execution when sub requests are groupable (a plan should group requests and use the optimize case when possible and not only optimize all or nothing).
 
+TIP: for a simpler implementation you can review `io.yupiik.uship.jsonrpc.core.plan.SimpleExecutionPlanCompanion` which enables to write checks more easily.
+
 The use case is the following one:
 
 * You have a JSON-RPC method `findById` which takes two parameters `id` and `logo` (a boolean to request to include the logo url or not),
@@ -169,3 +171,47 @@ public class EnrichedJsonRpcHandler extends JsonRpcHandler {
 <.> We do the optimized execution,
 <.> we map the result of the optimized execution to atomic `Response` (for each incoming request of the bulk request),
 <.> Since our optimized execution was synchronous we wrap the responses in a `CompletionStage` - not needed if you already have one.
+
+== Tip
+
+With java streams, you can write all these checks more fluently (note that some helper methods can ease that even more).
+All the trick relies on the fact to pass an enriched state between stream (of one element there) states:
+
+[source,java]
+----
+public CompletionStage<?> execute(final JsonStructure request) {
+    return Stream.of(request)
+            // check it is a bulk request
+            .filter(req -> req.getValueType() == JsonValue.ValueType.ARRAY)
+            .map(JsonValue::asJsonArray)
+            // check it has something to execute
+            .filter(array -> !array.isEmpty())
+            // create a state with the first item
+            .map(array -> new Tuple2<>(array, array.get(0)))
+            // check first item is well formatted (ie it is an object)
+            .filter(arrayWithFirstItem -> arrayWithFirstItem.second().getValueType() == JsonValue.ValueType.OBJECT)
+            // create a test to simplify first item checks
+            .map(arrayWithFirstObj -> {
+                final var firstItemAsObject = arrayWithFirstObj.second().asJsonObject();
+                return new Tuple2<>(
+                        arrayWithFirstObj.first(),
+                        new Tuple2<>(
+                                firstItemAsObject,
+                                firstItemAsObject.get("method")));
+            })
+            // check method is a valid json string and then pass it in the state
+            .filter(arrayWithFirstObjAndMethod -> arrayWithFirstObjAndMethod.second().second().getValueType() == JsonValue.ValueType.STRING)
+            .map(arrayWithFirstObjAndMethod -> new Tuple2<>(
+                    arrayWithFirstObjAndMethod.first(),
+                    new Tuple2<>(
+                            arrayWithFirstObjAndMethod.second().first(),
+                            JsonString.class.cast(arrayWithFirstObjAndMethod.second().second()).getString())))
+            // check it is the method we want to optimize
+            .filter(arrayWithFirstObjAndMethod -> "myMethod".equals(arrayWithFirstObjAndMethod.second().second()))
+            .findFirst() // check all previous conditions before converting the code
+            // unwrap to get the array
+            .map(Tuple2::first)
+            .map(this::optimize) // optimization is preconditions are true
+            .or(this::defaultImpl); // else default impl without optimizations
+}
+----
