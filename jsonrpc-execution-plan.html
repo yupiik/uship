@@ -70,7 +70,9 @@
                 <h1>JSON-RPC execution plan example</h1>
             </div>
             <div class="page-content-body">
-                <div class="paragraph">
+                <div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
 <p>On this page we want to implement a first optimization on our JSON-RPC server.</p>
 </div>
 <div class="admonitionblock warning">
@@ -81,6 +83,18 @@
 </td>
 <td class="content">
 this page will not go through the complete details of such optimization and only consider the pure case where all requests match but a real implement could group requests to still optimize the execution when sub requests are groupable (a plan should group requests and use the optimize case when possible and not only optimize all or nothing).
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Tip</div>
+</td>
+<td class="content">
+for a simpler implementation you can review <code>io.yupiik.uship.jsonrpc.core.plan.SimpleExecutionPlanCompanion</code> which enables to write checks more easily.
 </td>
 </tr>
 </table>
@@ -296,6 +310,56 @@ public class EnrichedJsonRpcHandler extends JsonRpcHandler {
 <p>Since our optimized execution was synchronous we wrap the responses in a <code>CompletionStage</code> - not needed if you already have one.</p>
 </li>
 </ol>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_tip">Tip</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>With java streams, you can write all these checks more fluently (note that some helper methods can ease that even more).
+All the trick relies on the fact to pass an enriched state between stream (of one element there) states:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">public CompletionStage&lt;?&gt; execute(final JsonStructure request) {
+    return Stream.of(request)
+            // check it is a bulk request
+            .filter(req -&gt; req.getValueType() == JsonValue.ValueType.ARRAY)
+            .map(JsonValue::asJsonArray)
+            // check it has something to execute
+            .filter(array -&gt; !array.isEmpty())
+            // create a state with the first item
+            .map(array -&gt; new Tuple2&lt;&gt;(array, array.get(0)))
+            // check first item is well formatted (ie it is an object)
+            .filter(arrayWithFirstItem -&gt; arrayWithFirstItem.second().getValueType() == JsonValue.ValueType.OBJECT)
+            // create a test to simplify first item checks
+            .map(arrayWithFirstObj -&gt; {
+                final var firstItemAsObject = arrayWithFirstObj.second().asJsonObject();
+                return new Tuple2&lt;&gt;(
+                        arrayWithFirstObj.first(),
+                        new Tuple2&lt;&gt;(
+                                firstItemAsObject,
+                                firstItemAsObject.get("method")));
+            })
+            // check method is a valid json string and then pass it in the state
+            .filter(arrayWithFirstObjAndMethod -&gt; arrayWithFirstObjAndMethod.second().second().getValueType() == JsonValue.ValueType.STRING)
+            .map(arrayWithFirstObjAndMethod -&gt; new Tuple2&lt;&gt;(
+                    arrayWithFirstObjAndMethod.first(),
+                    new Tuple2&lt;&gt;(
+                            arrayWithFirstObjAndMethod.second().first(),
+                            JsonString.class.cast(arrayWithFirstObjAndMethod.second().second()).getString())))
+            // check it is the method we want to optimize
+            .filter(arrayWithFirstObjAndMethod -&gt; "myMethod".equals(arrayWithFirstObjAndMethod.second().second()))
+            .findFirst() // check all previous conditions before converting the code
+            // unwrap to get the array
+            .map(Tuple2::first)
+            .map(this::optimize) // optimization is preconditions are true
+            .or(this::defaultImpl); // else default impl without optimizations
+}</code></pre>
+</div>
+</div>
+</div>
 </div>
                 
             </div>
