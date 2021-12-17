@@ -180,8 +180,9 @@ public class SimpleJsonRpcHandler {
                 return handleRequest(request.asJsonObject(), httpRequest, httpResponse);
             case ARRAY: // batch
                 final var requests = request.asJsonArray();
-                if (requests.size() > 50) {
-                    return completedFuture(toErrorResponse(null, new JsonRpcException(10_100, "Too much request at once, limit it to 50 max please.", null), request));
+                if (requests.size() > getMaxBulkRequests()) {
+                    return completedFuture(toErrorResponse(null, new JsonRpcException(
+                            10_100, "Too much request at once, limit it to " + getMaxBulkRequests() + " max please.", null), request));
                 }
                 final CompletableFuture<?>[] futures = requests.stream()
                         .map(it -> it.getValueType() == JsonValue.ValueType.OBJECT ?
@@ -196,5 +197,9 @@ public class SimpleJsonRpcHandler {
             default:
                 return completedFuture(createResponse(null, -32600, "Unknown request type: " + request.getValueType()));
         }
+    }
+
+    protected int getMaxBulkRequests() {
+        return 50;
     }
 }
