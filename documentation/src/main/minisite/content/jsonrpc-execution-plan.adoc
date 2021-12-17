@@ -1,0 +1,171 @@
+= JSON-RPC execution plan example
+
+On this page we want to implement a first optimization on our JSON-RPC server.
+
+WARNING: this page will not go through the complete details of such optimization and only consider the pure case where all requests match but a real implement could group requests to still optimize the execution when sub requests are groupable (a plan should group requests and use the optimize case when possible and not only optimize all or nothing).
+
+The use case is the following one:
+
+* You have a JSON-RPC method `findById` which takes two parameters `id` and `logo` (a boolean to request to include the logo url or not),
+* You have a java service method called `findByIds` which can load multiple entities at once (`WHERE id in (...)`).
+
+The idea is to replace a bulk request of `findById` by an optimized execution using `findByIds` making the server execution optimized even if the client request is not optimal.
+
+Here is a sample implementation:
+
+[source,java]
+----
+@Specializes
+@ApplicationScoped
+public class EnrichedJsonRpcHandler extends JsonRpcHandler {
+    @Inject
+    @JsonRpc
+    private SearchService searcher;
+
+    @Inject
+    private Jsonb jsonb;
+
+    @Inject
+    private JsonBuilderFactory jsonBuilderFactory;
+
+    @Override
+    public CompletionStage<?> execute(final JsonStructure request,
+                                      final HttpServletRequest httpRequest,
+                                      final HttpServletResponse httpResponse) {
+        if (request.getValueType() != JsonValue.ValueType.ARRAY) { // <1>
+            return super.execute(request, httpRequest, httpResponse);
+        }
+
+        final var req = request.asJsonArray();
+        if (req.isEmpty()) { // <2>
+            return super.execute(request, httpRequest, httpResponse);
+        }
+
+        final var first = req.get(0);
+        if (first.getValueType() != JsonValue.ValueType.OBJECT) { // <3>
+            return super.execute(request, httpRequest, httpResponse);
+        }
+
+        final var obj = first.asJsonObject();
+        final var name = obj.get("method");
+        if (name == null || name.getValueType() != JsonValue.ValueType.STRING) { // <4>
+            return super.execute(request, httpRequest, httpResponse);
+        }
+
+        // <5>
+        return executeWithOptimizations(request, httpRequest, httpResponse, req, obj, JsonString.class.cast(name).getString());
+    }
+
+    private CompletionStage<?> executeWithOptimizations( // <6>
+            final JsonStructure request, final HttpServletRequest httpRequest, final HttpServletResponse httpResponse,
+            final JsonArray req, final JsonObject firstItem, final String method) {
+        switch (method) {
+            case "findById":
+                return findByIds(request, httpRequest, httpResponse, req, firstItem);
+            default:
+                return super.execute(request, httpRequest, httpResponse);
+        }
+    }
+
+    private CompletionStage<?> findByIds(final JsonStructure request,
+                                         final HttpServletRequest httpRequest,
+                                         final HttpServletResponse httpResponse,
+                                         final JsonArray req,
+                                         final JsonObject firstItem) {
+        final var requests = req.stream()
+                .filter(it -> it.getValueType() == JsonValue.ValueType.OBJECT)
+                .map(JsonValue::asJsonObject)
+                .toList();
+        if (requests.size() != req.size()) { // <7>
+            return super.execute(request, httpRequest, httpResponse);
+        }
+
+        final var params = firstItem.get("params");
+        if (params == null || params.getValueType() != JsonValue.ValueType.OBJECT) { // <8>
+            return super.execute(request, httpRequest, httpResponse);
+        }
+
+        final var icons = params.asJsonObject().get("logo");
+        // <9>
+        if (icons.getValueType() != JsonValue.ValueType.TRUE &&
+                icons.getValueType() != JsonValue.ValueType.FALSE) {
+            return super.execute(request, httpRequest, httpResponse);
+        }
+        // <10>
+        if (requests.stream()
+                        .skip(1)
+                        .map(it -> it.get("params"))
+                        .anyMatch(p -> p == null ||
+                                p.getValueType() != JsonValue.ValueType.OBJECT ||
+                                !Objects.equals(icons, p.asJsonObject().get("logo")))) {
+            return super.execute(request, httpRequest, httpResponse);
+        }
+
+        // <11>
+        final var ids = requests.stream()
+                .map(it -> it.get("params").asJsonObject())
+                .map(it -> it.get("id"))
+                .filter(Objects::nonNull)
+                .filter(it -> it.getValueType() == JsonValue.ValueType.STRING)
+                .map(JsonString.class::cast)
+                .map(JsonString::getString)
+                .toList();
+        if (ids.size() != requests.size()) { // wrongly formatted request, let it go
+            return super.execute(request, httpRequest, httpResponse);
+        }
+
+        // <12>
+        if (ids.size() > 50) { // likely not supported properly - later group by chunks of 50, for now it is ok
+            return super.execute(request, httpRequest, httpResponse);
+        }
+
+        // <13>
+        httpResponse.setHeader("JsonRpc-Rewritten", "true");
+
+        // <14>
+        final var byId = searcher.findByMultipleCIS(ids, JsonValue.TRUE.equals(icons));
+        final var reqIterator = requests.iterator();
+        final var responses = ids.stream() // <15>
+                .map(it -> {
+                    final var response = new Response();
+                    response.setJsonrpc("2.0");
+
+                    final var id = reqIterator.next().get("id");
+                    if (id != null) { // propagate request id if the client uses it to reconcile the responses
+                        response.setId(id);
+                    }
+
+                    final var value = byId.get(it);
+                    if (value == null) {
+                        response.setError(new Response.ErrorResponse(
+                                404, "Entity '" + id + "' not found",
+                                jsonBuilderFactory.createObjectBuilder()
+                                        .add("id", it)
+                                        .build()));
+                    } else {
+                        // or use johnzon more optimized round trip using a JsonValueReader or alike
+                        response.setResult(jsonb.fromJson(jsonb.toJson(value), JsonObject.class));
+                    }
+                    return response;
+                })
+                .toArray(Response[]::new);
+        return completedFuture(responses); // <16>
+    }
+}
+----
+<.> If not a bulk request we don't optimize it, so we early quit,
+<.> If not an empty bulk request we can't optimize it, so we early quit,
+<.> If the first bulk request is not an object we can't evaluate it so use the default runtime to fail,
+<.> If the first bulk item does not have a method attribute we can't evaluate it so use the default runtime to fail,
+<.> If previous conditions are met, try to optimize the execution,
+<.> This method enables us to route the optimizations specifically for a method (simpler to maintain),
+<.> If any request of the bulk is not a request then we can't evaluate it so use the default runtime to fail,
+<.> If any request of the bulk is missing some parameter (keep in mind `id` and `logo` are required there) then we use the default runtime to fail,
+<.> If `logo` value is invalid use the default runtime to fail,
+<.> If multiple `logo` values, keep the default runtime execution (one by one instead of at once) - note that here we could group by `logo` value to do 2 optimizations or a more advanced query to optimize the runtime (out of scope of this post),
+<.> Extract all identifiers for the bulk request,
+<.> If we have too many requests then fail - note that we could group there too but bulk request max size is `50` so we just aligned the value there (and luckily it is also aligned on the most common SQL limitations),
+<.> Totally optional but we enrich the response to notify the caller we rewrote the execution (can be useful for debug purposes),
+<.> We do the optimized execution,
+<.> we map the result of the optimized execution to atomic `Response` (for each incoming request of the bulk request),
+<.> Since our optimized execution was synchronous we wrap the responses in a `CompletionStage` - not needed if you already have one.

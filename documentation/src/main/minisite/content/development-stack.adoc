@@ -339,6 +339,8 @@ public class EnrichedJsonRpcHandler extends JsonRpcHandler {
 }
 ----
 
+If you want a more complete example of execution plan you can read xref:jsonrpc-execution-plan.adoc[execution plan example] page.
+
 == Postman collection for JSON-RPC endpoint
 
 Similarly to Asciidoctor documentation you can generate a collection of JSON-RPC requests using `PostmanCollectionGenerator` main.
