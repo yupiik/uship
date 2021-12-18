@@ -37,13 +37,13 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>servlet-jakarta-javax-bridge</artifactId>
-      <version>${parent.version}</version>
+      <version>${project.version}</version>
     </dependency>
 
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jsonrpc-core</artifactId>
-      <version>${parent.version}</version>
+      <version>${project.version}</version>
       <exclusions>
         <exclusion>
           <groupId>${project.groupId}</groupId>
