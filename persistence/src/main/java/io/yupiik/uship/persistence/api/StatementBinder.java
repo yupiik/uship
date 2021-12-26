@@ -15,11 +15,17 @@
  */
 package io.yupiik.uship.persistence.api;
 
+import io.yupiik.uship.persistence.impl.query.StatementBinderImpl;
+
 import java.util.function.Consumer;
 
 public interface StatementBinder {
     Consumer<StatementBinder> NONE = q -> {
     };
+
+    StatementBinderImpl withReadOnlyForwardOnlyStatement();
+
+    StatementBinder withFetchSize(int fetchSize);
 
     StatementBinder bind(Class<?> type, Object instance);
 

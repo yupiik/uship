@@ -21,22 +21,50 @@ import io.yupiik.uship.persistence.impl.DatabaseImpl;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 
 public class StatementBinderImpl implements StatementBinder, AutoCloseable {
     private final DatabaseImpl database;
-    private final PreparedStatement preparedStatement;
+    private final Connection connection;
+    private final String sql;
+    private PreparedStatement preparedStatement;
     private int index = 1;
 
-    public StatementBinderImpl(final DatabaseImpl database, final String sql, final Connection connection) throws SQLException {
+    public StatementBinderImpl(final DatabaseImpl database, final String sql, final Connection connection) {
         this.database = database;
-        this.preparedStatement = connection.prepareStatement(sql);
+        this.connection = connection;
+        this.sql = sql;
+    }
+
+    @Override
+    public StatementBinderImpl withReadOnlyForwardOnlyStatement() {
+        if (preparedStatement == null) {
+            try {
+                preparedStatement = connection.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+            } catch (final SQLException e) {
+                throw new PersistenceException(e);
+            }
+        } else {
+            throw new PersistenceException("Statement is already created, ensure to call withReadOnlyForwardOnlyStatement() first on the StatementBinder");
+        }
+        return this;
+    }
+
+    @Override
+    public StatementBinderImpl withFetchSize(final int fetchSize) {
+        try {
+            getPreparedStatement().setFetchSize(fetchSize);
+        } catch (final SQLException e) {
+            throw new PersistenceException(e);
+        }
+        return this;
     }
 
     @Override
     public StatementBinderImpl bind(final Class<?> type, final Object instance) {
         try {
-            database.doBind(preparedStatement, index++, instance, type);
+            database.doBind(getPreparedStatement(), index++, instance, type);
         } catch (final SQLException e) {
             throw new PersistenceException(e);
         }
@@ -44,6 +72,13 @@ public class StatementBinderImpl implements StatementBinder, AutoCloseable {
     }
 
     public PreparedStatement getPreparedStatement() {
+        if (preparedStatement == null) {
+            try {
+                preparedStatement = connection.prepareStatement(sql);
+            } catch (final SQLException e) {
+                throw new PersistenceException(e);
+            }
+        }
         return preparedStatement;
     }
 
@@ -53,6 +88,8 @@ public class StatementBinderImpl implements StatementBinder, AutoCloseable {
 
     @Override
     public void close() throws SQLException {
-        preparedStatement.close();
+        if (preparedStatement != null) {
+            preparedStatement.close();
+        }
     }
 }
