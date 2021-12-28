@@ -24,6 +24,7 @@ import io.yupiik.uship.persistence.api.lifecycle.OnDelete;
 import io.yupiik.uship.persistence.api.lifecycle.OnInsert;
 import io.yupiik.uship.persistence.api.lifecycle.OnLoad;
 import io.yupiik.uship.persistence.api.lifecycle.OnUpdate;
+import io.yupiik.uship.persistence.impl.mapper.EnumMapper;
 import io.yupiik.uship.persistence.spi.DatabaseTranslation;
 
 import java.lang.annotation.Annotation;
@@ -34,6 +35,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
+import java.lang.reflect.ParameterizedType;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -101,14 +103,21 @@ public class EntityImpl<E> implements Entity<E> {
         final var paramCounter = new AtomicInteger();
         this.constructorParameters = record ?
                 captureConstructorParameters(type)
-                        .collect(toMap(p -> name(p).orElseGet(p::getName), p -> new ParameterHolder(p, paramCounter.getAndIncrement()), (a, b) -> {
-                            throw new IllegalArgumentException("Ambiguous parameter: " + a);
-                        }, CaseInsensitiveLinkedHashMap::new)) :
+                        .collect(toMap(
+                                p -> name(p).orElseGet(p::getName),
+                                p -> new ParameterHolder(
+                                        p, paramCounter.getAndIncrement(),
+                                        toMapper(ofNullable(p.getAnnotation(Column.class)).map(Column::mapper).orElse(null))), (a, b) -> {
+                                    throw new IllegalArgumentException("Ambiguous parameter: " + a);
+                                }, CaseInsensitiveLinkedHashMap::new)) :
                 Map.of();
         this.fields = captureFields(type)
-                .collect(toMap(this::name, f -> new ColumnModel(f, f.getType().isEnum()), (a, b) -> {
-                    throw new IllegalArgumentException("Ambiguous field: " + a);
-                }, CaseInsensitiveLinkedHashMap::new));
+                .collect(toMap(
+                        this::name,
+                        f -> new ColumnModel(f, toMapper(ofNullable(f.getAnnotation(Column.class)).map(Column::mapper).orElse(null))),
+                        (a, b) -> {
+                            throw new IllegalArgumentException("Ambiguous field: " + a);
+                        }, CaseInsensitiveLinkedHashMap::new));
 
         this.idFields = this.fields.values().stream()
                 .filter(it -> it.field.isAnnotationPresent(Id.class) || ofNullable(constructorParameters.get(it.field.getName()))
@@ -175,6 +184,24 @@ public class EntityImpl<E> implements Entity<E> {
                                 e.getValue().parameter.getParameterizedType(), e.getKey())))
                 .distinct()
                 .collect(toList());
+    }
+
+    private Column.ValueMapper<?, ?> toMapper(final Class<? extends Column.ValueMapper> value) {
+        if (value == null || value == Column.ValueMapper.class) {
+            return null;
+        }
+        final var lookup = database.getInstanceLookup();
+        if (lookup != null) {
+            final var instance = lookup.apply(value);
+            if (instance != null) {
+                return Column.ValueMapper.class.cast(instance);
+            }
+        }
+        try {
+            return value.getConstructor().newInstance();
+        } catch (final InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            throw new PersistenceException(e);
+        }
     }
 
     @Override
@@ -324,7 +351,7 @@ public class EntityImpl<E> implements Entity<E> {
             final var params = new Object[constructorParameters.size()];
             try {
                 for (final var param : boundParams) {
-                    params[param.getKey().index] = doLookup(resultSet, param.getValue(), param.getKey().parameter.getType(), param.getKey().isEnum);
+                    params[param.getKey().index] = doLookup(resultSet, param.getValue(), param.getKey().parameter.getType(), param.getKey().valueMapper);
                 }
                 if (!notSet.isEmpty()) {
                     notSet.forEach(p -> params[p.index] = p.defaultValue);
@@ -367,7 +394,7 @@ public class EntityImpl<E> implements Entity<E> {
                     if (field == null) {
                         continue;
                     }
-                    field.getKey().field.set(instance, doLookup(resultSet, field.getValue(), field.getKey().field.getType(), field.getKey().isEnum));
+                    field.getKey().field.set(instance, doLookup(resultSet, field.getValue(), field.getKey().field.getType(), field.getKey().valueMapper));
                 }
                 callMethodsWith(onLoads, instance);
                 return instance;
@@ -379,17 +406,9 @@ public class EntityImpl<E> implements Entity<E> {
         };
     }
 
-    private Object doLookup(final ResultSet resultSet, final int index, final Class<?> type, final boolean isEnum) throws SQLException {
-        if (isEnum) {
-            final var value = database.lookup(resultSet, index, String.class);
-            if (value == null) {
-                return null;
-            }
-            final var string = value.toString();
-            if (string.isBlank()) {
-                return null;
-            }
-            return Enum.valueOf(Class.class.cast(type), string);
+    private Object doLookup(final ResultSet resultSet, final int index, final Class<?> type, final Column.ValueMapper mapper) throws SQLException {
+        if (mapper != null) {
+            return mapper.toJava(database.lookup(resultSet, index, String.class));
         }
         return database.lookup(resultSet, index, type);
     }
@@ -437,6 +456,15 @@ public class EntityImpl<E> implements Entity<E> {
 
     public void onFindById(final PreparedStatement stmt, final Object id) {
         if (idFields.size() == 1) {
+            final Column.ValueMapper mapper = idFields.get(0).valueMapper;
+            if (mapper != null) {
+                try {
+                    stmt.setObject(1, mapper.toDatabase(id));
+                } catch (final SQLException ex) {
+                    throw new PersistenceException(ex);
+                }
+                return;
+            }
             try {
                 stmt.setObject(1, id);
             } catch (final SQLException ex) {
@@ -454,7 +482,7 @@ public class EntityImpl<E> implements Entity<E> {
             for (final var field : idFields) {
                 final var value = ids[idx - 1];
                 try {
-                    doBind(stmt, idx, field.field.getType(), value, field.isEnum);
+                    doBind(stmt, idx, field.type, value, field.valueMapper);
                     idx++;
                 } catch (final SQLException ex) {
                     throw new PersistenceException(ex);
@@ -469,7 +497,7 @@ public class EntityImpl<E> implements Entity<E> {
             for (final var field : idFields) {
                 final var value = it.next();
                 try {
-                    doBind(stmt, idx, field.field.getType(), value, field.isEnum);
+                    doBind(stmt, idx, field.type, value, field.valueMapper);
                     idx++;
                 } catch (final SQLException ex) {
                     throw new PersistenceException(ex);
@@ -498,7 +526,7 @@ public class EntityImpl<E> implements Entity<E> {
 
     private void doBind(final Object instance, final PreparedStatement statement, final int idx, final ColumnModel field) {
         try {
-            doBind(statement, idx, field.field.getType(), field.field.get(instance), field.isEnum);
+            doBind(statement, idx, field.type, field.field.get(instance), field.valueMapper);
         } catch (final IllegalAccessException e) {
             throw new IllegalStateException(e);
         } catch (final SQLException ex) {
@@ -506,9 +534,10 @@ public class EntityImpl<E> implements Entity<E> {
         }
     }
 
-    private void doBind(final PreparedStatement statement, final int idx, final Class<?> fieldType, final Object value, final boolean isEnum) throws SQLException {
-        if (isEnum) {
-            database.doBind(statement, idx, value == null ? null : Enum.class.cast(value).name(), String.class);
+    private void doBind(final PreparedStatement statement, final int idx, final Class<?> fieldType, final Object value,
+                        final Column.ValueMapper valueMapper) throws SQLException {
+        if (valueMapper != null) {
+            database.doBind(statement, idx, valueMapper.toDatabase(value), fieldType);
         } else {
             database.doBind(statement, idx, value, fieldType);
         }
@@ -593,15 +622,15 @@ public class EntityImpl<E> implements Entity<E> {
     private static class ParameterHolder {
         private final Parameter parameter;
         private final int index;
-        private final boolean isEnum;
+        private final Column.ValueMapper<?, ?> valueMapper;
 
         public final Object defaultValue;
         private final int hash;
 
-        private ParameterHolder(final Parameter parameter, final int index) {
+        private ParameterHolder(final Parameter parameter, final int index, final Column.ValueMapper<?, ?> valueMapper) {
             this.parameter = parameter;
             this.index = index;
-            this.isEnum = parameter.getType().isEnum();
+            this.valueMapper = valueMapper == null && parameter.getType().isEnum() ? new EnumMapper<>(Class.class.cast(parameter.getType())) : valueMapper;
             this.hash = Objects.hash(parameter, index);
             this.defaultValue = findDefault(parameter.getType());
         }
@@ -675,13 +704,24 @@ public class EntityImpl<E> implements Entity<E> {
 
     private static class ColumnModel {
         private final Field field;
-        private final boolean isEnum;
+        private final Class<?> type;
         private final int hash;
+        private final Column.ValueMapper<?, ?> valueMapper;
 
-        private ColumnModel(final Field field, final boolean isEnum) {
+        private ColumnModel(final Field field, final Column.ValueMapper<?, ?> valueMapper) {
             this.field = field;
-            this.isEnum = isEnum;
             this.hash = Objects.hash(field);
+            this.valueMapper = valueMapper == null && field.getType().isEnum() ? new EnumMapper<>(Class.class.cast(field.getType())) : valueMapper;
+            this.type = valueMapper == null ?
+                    field.getType() :
+                    Stream.of(valueMapper.getClass().getGenericInterfaces())
+                            .filter(ParameterizedType.class::isInstance)
+                            .map(ParameterizedType.class::cast)
+                            .filter(p -> p.getRawType() == Column.ValueMapper.class)
+                            .map(p -> p.getActualTypeArguments()[0])
+                            .findFirst()
+                            .map(Class.class::cast)
+                            .orElseThrow(() -> new IllegalArgumentException("add implements ValueMapper<..., ...> to " + valueMapper));
         }
 
         @Override

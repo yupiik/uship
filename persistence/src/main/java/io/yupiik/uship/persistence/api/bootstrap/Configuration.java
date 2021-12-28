@@ -19,11 +19,23 @@ import io.yupiik.uship.persistence.spi.DatabaseTranslation;
 
 import javax.sql.DataSource;
 
+import java.util.function.Function;
+
 import static java.util.Objects.requireNonNull;
 
 public class Configuration {
+    private Function<Class<?>, Object> instanceLookup;
     private DataSource dataSource;
     private DatabaseTranslation translation;
+
+    public Function<Class<?>, Object> getInstanceLookup() {
+        return instanceLookup;
+    }
+
+    public Configuration setInstanceLookup(final Function<Class<?>, Object> instanceLookup) {
+        this.instanceLookup = instanceLookup;
+        return this;
+    }
 
     public DatabaseTranslation getTranslation() {
         return translation;

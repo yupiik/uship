@@ -63,10 +63,16 @@ public class DatabaseImpl implements Database {
     private final DatabaseTranslation translation;
     private final Map<Class<?>, EntityImpl<?>> entities = new ConcurrentHashMap<>();
     private final QueryCompiler queryCompiler = new QueryCompiler(this);
+    private final Function<Class<?>, Object> instanceLookup;
 
     public DatabaseImpl(final Configuration configuration) {
         this.datasource = configuration.getDataSource();
+        this.instanceLookup = configuration.getInstanceLookup();
         this.translation = configuration.getTranslation() == null ? guessTranslation() : configuration.getTranslation();
+    }
+
+    public Function<Class<?>, Object> getInstanceLookup() {
+        return instanceLookup;
     }
 
     public DataSource getDatasource() {
