@@ -25,13 +25,45 @@ import io.yupiik.uship.persistence.impl.test.EnableH2;
 import org.junit.jupiter.api.Test;
 
 import javax.sql.DataSource;
+import java.sql.SQLException;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import static java.util.stream.Collectors.toList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class EntityImplTest {
+    @Test
+    @EnableH2
+    void enumField(final DataSource dataSource) throws SQLException {
+        final var database = Database.of(new Configuration().setDataSource(dataSource));
+        final var model = database.getOrCreateEntity(WithEnum.class);
+        assertEquals("id, type", model.concatenateColumns(new Entity.ColumnsConcatenationRequest()));
+        assertEquals(List.of("CREATE TABLE WITH_ENUM (id VARCHAR(255), type VARCHAR(255), PRIMARY KEY (id))"), List.of(model.ddl()));
+        assertEquals(MyType.class, model.getOrderedColumns().stream()
+                .filter(it -> "type".equals(it.javaName()))
+                .findFirst()
+                .orElseThrow(AssertionError::new)
+                .type());
+        try (final var connection = dataSource.getConnection()) {
+            try (final var stmt = connection.createStatement()) {
+                stmt.execute("create table with_enum (id varchar(255), type varchar(5), primary key(id))");
+            }
+
+            final var entity = new WithEnum();
+            entity.id = "1";
+            entity.type = MyType.OTHER;
+            database.insert(entity);
+            assertEquals(entity, database.findById(WithEnum.class, "1"));
+
+            entity.type = null;
+            database.update(entity);
+            assertEquals(entity, database.findById(WithEnum.class, "1"));
+        }
+    }
+
     @Test
     @EnableH2
     void concatenateFields(final DataSource dataSource) {
@@ -64,5 +96,35 @@ class EntityImplTest {
 
         @Column(name = "SIMPLE_AGE")
         private int age;
+    }
+
+    @Table("WITH_ENUM")
+    public static class WithEnum {
+        @Id
+        private String id;
+
+        @Column
+        private MyType type;
+
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            final WithEnum withEnum = WithEnum.class.cast(o);
+            return id.equals(withEnum.id) && type == withEnum.type;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(id, type);
+        }
+    }
+
+    public enum MyType {
+        A, OTHER
     }
 }

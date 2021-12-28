@@ -32,8 +32,8 @@ import static java.util.stream.Collectors.joining;
 public class DefaultTranslation implements DatabaseTranslation {
     @Override
     public String toDatabaseType(final Class<?> type, final Annotation... annotations) {
-        if (String.class == type) {
-            return "VARCHAR(255)"; // todo: @Column(length) in annotations?
+        if (String.class == type || type.isEnum()) {
+            return "VARCHAR(255)"; // todo: @Column(length) in annotations? + lob = true for "TEXT"?
         }
         if (byte.class == type) {
             return "TINYINT";

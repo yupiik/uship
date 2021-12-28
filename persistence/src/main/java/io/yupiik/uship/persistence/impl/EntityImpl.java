@@ -56,7 +56,6 @@ import static java.util.Comparator.comparing;
 import static java.util.Locale.ROOT;
 import static java.util.Map.entry;
 import static java.util.Optional.ofNullable;
-import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
@@ -65,8 +64,8 @@ import static java.util.stream.Collectors.toMap;
 public class EntityImpl<E> implements Entity<E> {
     private final DatabaseImpl database;
     private final Class<?> rootType;
-    private final Map<String, Field> fields;
-    private final List<Field> idFields;
+    private final Map<String, ColumnModel> fields;
+    private final List<ColumnModel> idFields;
     private final Map<String, ParameterHolder> constructorParameters;
     private final Constructor<E> constructor;
     private final String table;
@@ -107,19 +106,19 @@ public class EntityImpl<E> implements Entity<E> {
                         }, CaseInsensitiveLinkedHashMap::new)) :
                 Map.of();
         this.fields = captureFields(type)
-                .collect(toMap(this::name, identity(), (a, b) -> {
+                .collect(toMap(this::name, f -> new ColumnModel(f, f.getType().isEnum()), (a, b) -> {
                     throw new IllegalArgumentException("Ambiguous field: " + a);
                 }, CaseInsensitiveLinkedHashMap::new));
 
         this.idFields = this.fields.values().stream()
-                .filter(it -> it.isAnnotationPresent(Id.class) || ofNullable(constructorParameters.get(it.getName()))
+                .filter(it -> it.field.isAnnotationPresent(Id.class) || ofNullable(constructorParameters.get(it.field.getName()))
                         .map(p -> p.parameter.isAnnotationPresent(Id.class))
                         .filter(ok -> ok)
                         .isPresent())
                 .sorted(comparing(f -> {
-                    final var id = f.getAnnotation(Id.class);
+                    final var id = f.field.getAnnotation(Id.class);
                     if (id == null) {
-                        return ofNullable(constructorParameters.get(f.getName()))
+                        return ofNullable(constructorParameters.get(f.field.getName()))
                                 .filter(p -> p.parameter.isAnnotationPresent(Id.class))
                                 .map(p -> p.parameter.getAnnotation(Id.class))
                                 .map(Id::order)
@@ -140,10 +139,10 @@ public class EntityImpl<E> implements Entity<E> {
 
         // todo: go through translation to have escaping if needed, for now assume we don't use keywords in mapping
         final var byIdWhereClause = " WHERE " + idFields.stream()
-                .map(f -> translation.wrapFieldName(name(f)) + " = ?")
+                .map(f -> translation.wrapFieldName(name(f.field)) + " = ?")
                 .collect(joining(" AND "));
         final var fieldNamesCommaSeparated = fields.values().stream()
-                .map(f -> translation.wrapFieldName(name(f)))
+                .map(f -> translation.wrapFieldName(name(f.field)))
                 .collect(joining(", "));
         this.findByIdQuery = "" +
                 "SELECT " +
@@ -152,7 +151,7 @@ public class EntityImpl<E> implements Entity<E> {
                 byIdWhereClause;
         this.updateQuery = "" +
                 "UPDATE " + table + " SET " +
-                fields.values().stream().map(f -> translation.wrapFieldName(name(f)) + " = ?").collect(joining(", ")) +
+                fields.values().stream().map(f -> translation.wrapFieldName(name(f.field)) + " = ?").collect(joining(", ")) +
                 byIdWhereClause;
         this.deleteQuery = "" +
                 "DELETE FROM " + table + byIdWhereClause;
@@ -166,7 +165,9 @@ public class EntityImpl<E> implements Entity<E> {
         this.columns = (constructorParameters.isEmpty() ?
                 fields.entrySet().stream()
                         .sorted(fieldOrder())
-                        .map(e -> new ColumnMetadataImpl(e.getValue().getAnnotations(), e.getValue().getName(), e.getValue().getGenericType(), e.getKey())) :
+                        .map(e -> new ColumnMetadataImpl(
+                                e.getValue().field.getAnnotations(), e.getValue().field.getName(),
+                                e.getValue().field.getGenericType(), e.getKey())) :
                 constructorParameters.entrySet().stream()
                         .sorted(constructorOrder())
                         .map(e -> new ColumnMetadataImpl(
@@ -188,7 +189,7 @@ public class EntityImpl<E> implements Entity<E> {
                         (idFields.isEmpty() ? "" : translation.toCreateTablePrimaryKeySuffix(
                                 this.fields.entrySet().stream()
                                         .filter(it -> idFields.contains(it.getValue()))
-                                        .map(e -> entry(e.getKey(), mergeAnnotations(e.getValue())))
+                                        .map(e -> entry(e.getKey(), mergeAnnotations(e.getValue().field)))
                                         .collect(toList()))) +
                         ")"
         };
@@ -323,7 +324,7 @@ public class EntityImpl<E> implements Entity<E> {
             final var params = new Object[constructorParameters.size()];
             try {
                 for (final var param : boundParams) {
-                    params[param.getKey().index] = database.lookup(resultSet, param.getValue(), param.getKey().parameter.getType());
+                    params[param.getKey().index] = doLookup(resultSet, param.getValue(), param.getKey().parameter.getType(), param.getKey().isEnum);
                 }
                 if (!notSet.isEmpty()) {
                     notSet.forEach(p -> params[p.index] = p.defaultValue);
@@ -340,7 +341,7 @@ public class EntityImpl<E> implements Entity<E> {
     }
 
     private Function<ResultSet, E> pojoProvider(final String[] columns) {
-        final var boundFields = new ArrayList<Map.Entry<Field, Integer>>();
+        final var boundFields = new ArrayList<Map.Entry<ColumnModel, Integer>>();
         for (int i = 0; i < columns.length; i++) {
             final var key = columns[i];
             if (key == null) {
@@ -366,7 +367,7 @@ public class EntityImpl<E> implements Entity<E> {
                     if (field == null) {
                         continue;
                     }
-                    field.getKey().set(instance, database.lookup(resultSet, field.getValue(), field.getKey().getType()));
+                    field.getKey().field.set(instance, doLookup(resultSet, field.getValue(), field.getKey().field.getType(), field.getKey().isEnum));
                 }
                 callMethodsWith(onLoads, instance);
                 return instance;
@@ -376,6 +377,21 @@ public class EntityImpl<E> implements Entity<E> {
                 throw new PersistenceException(e.getTargetException());
             }
         };
+    }
+
+    private Object doLookup(final ResultSet resultSet, final int index, final Class<?> type, final boolean isEnum) throws SQLException {
+        if (isEnum) {
+            final var value = database.lookup(resultSet, index, String.class);
+            if (value == null) {
+                return null;
+            }
+            final var string = value.toString();
+            if (string.isBlank()) {
+                return null;
+            }
+            return Enum.valueOf(Class.class.cast(type), string);
+        }
+        return database.lookup(resultSet, index, type);
     }
 
     public Stream<String> toNames(final ResultSet resultSet) throws SQLException {
@@ -438,7 +454,7 @@ public class EntityImpl<E> implements Entity<E> {
             for (final var field : idFields) {
                 final var value = ids[idx - 1];
                 try {
-                    database.doBind(stmt, idx, value, field.getType());
+                    doBind(stmt, idx, field.field.getType(), value, field.isEnum);
                     idx++;
                 } catch (final SQLException ex) {
                     throw new PersistenceException(ex);
@@ -453,7 +469,7 @@ public class EntityImpl<E> implements Entity<E> {
             for (final var field : idFields) {
                 final var value = it.next();
                 try {
-                    database.doBind(stmt, idx, value, field.getType());
+                    doBind(stmt, idx, field.field.getType(), value, field.isEnum);
                     idx++;
                 } catch (final SQLException ex) {
                     throw new PersistenceException(ex);
@@ -466,27 +482,35 @@ public class EntityImpl<E> implements Entity<E> {
 
     private Comparator<Map.Entry<String, ParameterHolder>> constructorOrder() {
         return Comparator.<Map.Entry<String, ParameterHolder>, Integer>comparing(e -> idFields.stream()
-                        .filter(i -> i.getName().equals(e.getValue().parameter.getName()))
+                        .filter(i -> i.field.getName().equals(e.getValue().parameter.getName()))
                         .findFirst()
                         .map(idFields::indexOf)
                         .orElse(Integer.MAX_VALUE))
                 .thenComparing(Map.Entry::getKey);
     }
 
-    private Comparator<Map.Entry<String, Field>> fieldOrder() {
-        return Comparator.<Map.Entry<String, Field>, Integer>comparing(e -> idFields.contains(e.getValue()) ?
+    private Comparator<Map.Entry<String, ColumnModel>> fieldOrder() {
+        return Comparator.<Map.Entry<String, ColumnModel>, Integer>comparing(e -> idFields.contains(e.getValue()) ?
                         idFields.indexOf(e.getValue()) :
                         Integer.MAX_VALUE)
                 .thenComparing(Map.Entry::getKey);
     }
 
-    private void doBind(final Object instance, final PreparedStatement statement, final int idx, final Field field) {
+    private void doBind(final Object instance, final PreparedStatement statement, final int idx, final ColumnModel field) {
         try {
-            database.doBind(statement, idx, field.get(instance), field.getType());
+            doBind(statement, idx, field.field.getType(), field.field.get(instance), field.isEnum);
         } catch (final IllegalAccessException e) {
             throw new IllegalStateException(e);
         } catch (final SQLException ex) {
             throw new PersistenceException(ex);
+        }
+    }
+
+    private void doBind(final PreparedStatement statement, final int idx, final Class<?> fieldType, final Object value, final boolean isEnum) throws SQLException {
+        if (isEnum) {
+            database.doBind(statement, idx, value == null ? null : Enum.class.cast(value).name(), String.class);
+        } else {
+            database.doBind(statement, idx, value, fieldType);
         }
     }
 
@@ -569,6 +593,7 @@ public class EntityImpl<E> implements Entity<E> {
     private static class ParameterHolder {
         private final Parameter parameter;
         private final int index;
+        private final boolean isEnum;
 
         public final Object defaultValue;
         private final int hash;
@@ -576,6 +601,7 @@ public class EntityImpl<E> implements Entity<E> {
         private ParameterHolder(final Parameter parameter, final int index) {
             this.parameter = parameter;
             this.index = index;
+            this.isEnum = parameter.getType().isEnum();
             this.hash = Objects.hash(parameter, index);
             this.defaultValue = findDefault(parameter.getType());
         }
@@ -645,5 +671,33 @@ public class EntityImpl<E> implements Entity<E> {
         }
 
         // other methods are not used (why we need to break this inheritance thing)
+    }
+
+    private static class ColumnModel {
+        private final Field field;
+        private final boolean isEnum;
+        private final int hash;
+
+        private ColumnModel(final Field field, final boolean isEnum) {
+            this.field = field;
+            this.isEnum = isEnum;
+            this.hash = Objects.hash(field);
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            return field.equals(ColumnModel.class.cast(o).field);
+        }
+
+        @Override
+        public int hashCode() {
+            return hash;
+        }
     }
 }
