@@ -20,6 +20,7 @@ import jakarta.servlet.DispatcherType;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.annotation.HandlesTypes;
 import org.apache.catalina.LifecycleException;
+import org.apache.catalina.LifecycleState;
 import org.apache.catalina.core.StandardContext;
 import org.apache.catalina.core.StandardHost;
 import org.apache.catalina.startup.Tomcat;
@@ -31,6 +32,7 @@ import org.apache.tomcat.util.modeler.Registry;
 import java.io.CharArrayWriter;
 import java.util.EnumSet;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import static java.util.Optional.ofNullable;
@@ -61,7 +63,17 @@ public class TomcatWebServer implements AutoCloseable {
         }
 
         final var tomcat = createTomcat();
-        tomcat.getHost().addChild(createContext());
+        final var context = createContext();
+        tomcat.getHost().addChild(context);
+        final var state = context.getState();
+        if (state == LifecycleState.STOPPED || state == LifecycleState.FAILED) {
+            try {
+                close();
+            } catch (final RuntimeException re) {
+                // no-op
+            }
+            throw new IllegalStateException("Context didn't start");
+        }
         if (configuration.getPort() == 0) {
             configuration.setPort(getPort());
         }
@@ -77,6 +89,17 @@ public class TomcatWebServer implements AutoCloseable {
         try {
             tomcat.stop();
             tomcat.destroy();
+            final var server = tomcat.getServer();
+            if (server != null) { // give a change to stop the utility executor otherwise it just leaks and stop later
+                final var utilityExecutor = server.getUtilityExecutor();
+                if (utilityExecutor != null) {
+                    try {
+                        utilityExecutor.awaitTermination(1, TimeUnit.MINUTES);
+                    } catch (final InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+            }
         } catch (final LifecycleException e) {
             throw new IllegalStateException(e);
         }
@@ -88,6 +111,8 @@ public class TomcatWebServer implements AutoCloseable {
         tomcat.setPort(configuration.getPort());
 
         final var host = new StandardHost();
+        host.setAutoDeploy(false);
+        // note needed to stick to tomcat but neat to enable in customizers: host.setFailCtxIfServletStartFails(true);
         host.setName(configuration.getDefaultHost());
         tomcat.getEngine().addChild(host);
 
@@ -98,8 +123,18 @@ public class TomcatWebServer implements AutoCloseable {
 
         try {
             tomcat.init();
+        } catch (final LifecycleException e) {
+            try {
+                tomcat.destroy();
+            } catch (final LifecycleException ex) {
+                // no-op
+            }
+            throw new IllegalStateException(e);
+        }
+        try {
             tomcat.start();
         } catch (final LifecycleException e) {
+            close();
             throw new IllegalStateException(e);
         }
         return this.tomcat = tomcat;
@@ -110,6 +145,7 @@ public class TomcatWebServer implements AutoCloseable {
         ctx.setLoader(new LaunchingClassLoaderLoader());
         ctx.setPath("");
         ctx.setName("");
+        ctx.setFailCtxIfServletStartFails(true);
         // ctx.setJarScanner(newSkipScanner()); // we don't use scanning at all with this setup so just ignore useless optims for now
         ctx.addServletContainerInitializer((set, servletContext) -> defaultContextSetup(servletContext), null);
         configuration.getInitializers().forEach(sci -> ctx.addServletContainerInitializer(

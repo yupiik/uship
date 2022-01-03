@@ -26,9 +26,11 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class TomcatWebServerTest {
     @Test
@@ -58,5 +60,31 @@ class TomcatWebServerTest {
             assertEquals(HttpServletResponse.SC_OK, response.statusCode());
             assertEquals("ok from servlet", response.body());
         }
+    }
+
+    @Test
+    void stopOnFailure() {
+        final var configuration = new TomcatWebServerConfiguration();
+        configuration.setPort(0); // random
+        configuration.setInitializers(List.of((set, servletContext) -> {
+            final var servlet = servletContext.addServlet("test", new HttpServlet() {
+                @Override
+                public void init() {
+                    throw new IllegalArgumentException();
+                }
+            });
+            servlet.setLoadOnStartup(1);
+            servlet.addMapping("/test");
+        }));
+        final var threadsBefore = listThreads();
+        final var server = new TomcatWebServer(configuration);
+        assertThrows(IllegalStateException.class, server::create);
+        assertEquals(Set.of(threadsBefore), Set.of(listThreads()));
+    }
+
+    private Thread[] listThreads() {
+        final var threads = new Thread[Thread.activeCount()];
+        Thread.enumerate(threads);
+        return threads;
     }
 }
