@@ -25,6 +25,7 @@ import java.util.function.Consumer;
 public class TomcatWebServerConfiguration {
     private boolean skipUtf8Filter = false;
     private boolean disableRegistry = true;
+    private boolean fastSessionId = true;
     private String base = "";
     private int port = 8080;
     private String defaultHost = "localhost";
@@ -32,6 +33,14 @@ public class TomcatWebServerConfiguration {
     private List<ServletContainerInitializer> initializers = List.of();
     private List<Consumer<Tomcat>> tomcatCustomizers = List.of(Tomcat::getConnector); // force init
     private List<Consumer<StandardContext>> contextCustomizers = List.of();
+
+    public boolean isFastSessionId() {
+        return fastSessionId;
+    }
+
+    public void setFastSessionId(final boolean fastSessionId) {
+        this.fastSessionId = fastSessionId;
+    }
 
     public boolean isSkipUtf8Filter() {
         return skipUtf8Filter;

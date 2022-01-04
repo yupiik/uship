@@ -23,7 +23,9 @@ import org.apache.catalina.LifecycleException;
 import org.apache.catalina.LifecycleState;
 import org.apache.catalina.core.StandardContext;
 import org.apache.catalina.core.StandardHost;
+import org.apache.catalina.session.StandardManager;
 import org.apache.catalina.startup.Tomcat;
+import org.apache.catalina.util.StandardSessionIdGenerator;
 import org.apache.catalina.valves.AbstractAccessLogValve;
 import org.apache.catalina.valves.ErrorReportValve;
 import org.apache.coyote.AbstractProtocol;
@@ -32,6 +34,7 @@ import org.apache.tomcat.util.modeler.Registry;
 import java.io.CharArrayWriter;
 import java.util.EnumSet;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
@@ -168,6 +171,12 @@ public class TomcatWebServer implements AutoCloseable {
         ctx.setClearReferencesThreadLocals(false);
         ctx.setClearReferencesRmiTargets(false);
 
+        if (configuration.isFastSessionId()) {
+            final var mgr = new StandardManager();
+            mgr.setSessionIdGenerator(new FastSessionIdGenerator());
+            ctx.setManager(mgr);
+        }
+
         if (configuration.getContextCustomizers() != null) {
             configuration.getContextCustomizers().forEach(c -> c.accept(ctx));
         }
@@ -228,6 +237,13 @@ public class TomcatWebServer implements AutoCloseable {
         @Override
         protected void postWorkDirectory() {
             // no-op
+        }
+    }
+
+    private static class FastSessionIdGenerator extends StandardSessionIdGenerator {
+        @Override
+        protected void getRandomBytes(final byte bytes[]) {
+            ThreadLocalRandom.current().nextBytes(bytes);
         }
     }
 }
