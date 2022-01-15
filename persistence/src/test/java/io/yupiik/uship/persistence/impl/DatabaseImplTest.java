@@ -40,6 +40,7 @@ import java.util.function.IntSupplier;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DatabaseImplTest {
     @Test
@@ -191,6 +192,28 @@ class DatabaseImplTest {
         final var all = database.query(MyFlatEntity.class, "select name, id, age from FLAT_ENTITY order by name", StatementBinder.NONE);
         entities.forEach(database::delete);
         assertEquals(entities, all);
+    }
+
+    @Test
+    @EnableH2
+    void querySingle(final DataSource dataSource) throws SQLException {
+        final Database database = init(dataSource);
+
+        final var entities = new ArrayList<MyFlatEntity>();
+        for (int i = 0; i < 3; i++) { // seed data
+            final var instance = new MyFlatEntity();
+            instance.id = "test_" + i;
+            instance.name = instance.id;
+            entities.add(instance);
+            database.insert(instance);
+        }
+
+        try {
+            assertTrue(database.querySingle(MyFlatEntity.class, "select name, id, age from FLAT_ENTITY where name like ?", b -> b.bind("test_%")).isEmpty());
+            assertEquals(entities.get(0), database.querySingle(MyFlatEntity.class, "select name, id, age from FLAT_ENTITY where name like ?", b -> b.bind("test_0")).orElseThrow());
+        } finally {
+            entities.forEach(database::delete);
+        }
     }
 
     @Test

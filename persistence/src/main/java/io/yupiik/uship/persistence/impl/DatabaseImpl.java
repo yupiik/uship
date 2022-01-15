@@ -47,13 +47,17 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static java.util.Locale.ROOT;
+import static java.util.Map.entry;
 import static java.util.Objects.requireNonNull;
+import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
@@ -97,6 +101,28 @@ public class DatabaseImpl implements Database {
             binder.accept(query);
             try (final var rset = query.getPreparedStatement().executeQuery()) {
                 return mapAll(type, rset);
+            }
+        } catch (final SQLException ex) {
+            throw new PersistenceException(ex);
+        }
+    }
+
+    @Override
+    public <T> Optional<T> querySingle(final Class<T> type, final String sql, final Consumer<StatementBinder> binder) {
+        requireNonNull(type, "can't query without a projection");
+        requireNonNull(sql, "can't query without a query");
+        try (final var connection = datasource.getConnection();
+             final var query = queryCompiler.getOrCreate(new QueryKey<>(type, sql)).apply(connection)) {
+            binder.accept(query);
+            try (final var rset = query.getPreparedStatement().executeQuery()) {
+                if (!rset.next()) {
+                    return empty();
+                }
+                final var value = mapOne(type, rset);
+                if (rset.next()) {
+                    return empty();
+                }
+                return Optional.of(value);
             }
         } catch (final SQLException ex) {
             throw new PersistenceException(ex);
@@ -433,13 +459,14 @@ public class DatabaseImpl implements Database {
     }
 
     private Map<String, ?> mapAsMap(final List<String> names, final ResultSet line) {
-        return names.stream().collect(toMap(n -> n, n -> {
+        return names.stream().flatMap(it -> {
             try {
-                return line.getObject(n);
+                final var object = line.getObject(it);
+                return object == null ? Stream.empty() : Stream.of(entry(it, object));
             } catch (final SQLException e) {
                 throw new PersistenceException(e);
             }
-        }));
+        }).collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     private <T> EntityImpl<T> getEntityImpl(final Class<T> type) {

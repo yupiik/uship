@@ -22,6 +22,7 @@ import io.yupiik.uship.persistence.impl.DatabaseImpl;
 import java.sql.ResultSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -56,6 +57,8 @@ public interface Database {
     <T> T findById(Class<T> type, Object id);
 
     <T> List<T> query(Class<T> type, String sql, Consumer<StatementBinder> binder);
+
+    <T> Optional<T> querySingle(Class<T> type, String sql, Consumer<StatementBinder> binder);
 
     <T> T query(String sql,
                 Consumer<StatementBinder> binder,
