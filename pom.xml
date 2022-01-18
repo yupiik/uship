@@ -46,6 +46,7 @@
     <module>bom</module>
     <module>documentation</module>
     <module>samples</module>
+    <module>tracing</module>
   </modules>
 
   <dependencies>

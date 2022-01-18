@@ -57,6 +57,36 @@ conf.setListeners(List.of(
             false)));
 ----
 
+
+=== (Open) Tracing
+
+IMPORTANT: this is not in the same module, you must add `tracing` module to get this feature.
+
+`tracing` module provides a Tomcat valve you can set up on your web container to add tracing capabilities to your Tomcat:
+
+[source,java]
+----
+final var listener = new TracingListener(
+    new ClientTracingConfiguration(), <1>
+    accumulator, <2>
+    new IdGenerator(IdGenerator.Type.HEX), <3>
+    new ServletContextAttributeEvaluator(servletRequest), <4>
+    systemUTC()); <5>
+
+<6>
+final var configuration = new ExtendedHttpClientConfiguration()
+    .setRequestListeners(List.of(listener));
+final var client = new ExtendedHttpClient(configuration);
+----
+<.> The configuration enables to customize the span tags and headers to enrich the request with,
+<.> The accumulator is what will send/log/... the spans once aggregated, ensure to configure it as needed,
+<.> The `IdGenerator` provides the span/trace identifiers, it must be compatible with your collector (`hex` for zipkin for example),
+<.> Actually a `Supplier<Span>`, the span evaluator enables to get parent span, here from the `request` in a `webserver-tomcat` using `Tracingvalve` but any evaluation will work,
+<.> The clock enables to timestamp the span and compute its duration,
+<.> Finally, add the listener to your http client configuration and create your client.
+
+IMPORTANT: the accumulator should generally be closed if you reuse `AccumulatingSpanCollector`. You can combine it with `ZipkinFlusher` to flush to a zipkin collector v2.
+
 == Kubernetes client
 
 `kubernetes-client` modules providers a HTTP Client already configured for Kubernetes in cluster connection (from a POD).
