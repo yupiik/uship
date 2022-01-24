@@ -31,7 +31,7 @@ public class TomcatDataSource extends DataSource {
     private final Class<?>[] connectionProxiedTypes = {Connection.class};
     private final ThreadLocal<Connection> connectionThreadLocal = new ThreadLocal<>();
 
-    private TomcatDataSource(final PoolProperties properties) {
+    public TomcatDataSource(final PoolProperties properties) {
         super(properties);
     }
 
