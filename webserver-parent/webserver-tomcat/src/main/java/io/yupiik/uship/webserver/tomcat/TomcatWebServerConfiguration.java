@@ -30,9 +30,27 @@ public class TomcatWebServerConfiguration {
     private int port = 8080;
     private String defaultHost = "localhost";
     private String accessLogPattern = "common";
+    private String compression = "on";
+    private String skipAccessLogAttribute = "skip-access-log";
     private List<ServletContainerInitializer> initializers = List.of();
     private List<Consumer<Tomcat>> tomcatCustomizers = List.of(Tomcat::getConnector); // force init
     private List<Consumer<StandardContext>> contextCustomizers = List.of();
+
+    public String getSkipAccessLogAttribute() {
+        return skipAccessLogAttribute;
+    }
+
+    public void setSkipAccessLogAttribute(final String skipAccessLogAttribute) {
+        this.skipAccessLogAttribute = skipAccessLogAttribute;
+    }
+
+    public String getCompression() {
+        return compression;
+    }
+
+    public void setCompression(final String compression) {
+        this.compression = compression;
+    }
 
     public boolean isFastSessionId() {
         return fastSessionId;

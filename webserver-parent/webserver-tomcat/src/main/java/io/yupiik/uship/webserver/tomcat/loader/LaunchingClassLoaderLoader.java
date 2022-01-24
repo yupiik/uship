@@ -55,7 +55,7 @@ public class LaunchingClassLoaderLoader implements Loader {
     }
 
     @Override
-    public void addPropertyChangeListener(PropertyChangeListener listener) {
+    public void addPropertyChangeListener(final PropertyChangeListener listener) {
         // no-op
     }
 

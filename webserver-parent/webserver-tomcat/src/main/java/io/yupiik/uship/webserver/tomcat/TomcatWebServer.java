@@ -119,6 +119,10 @@ public class TomcatWebServer implements AutoCloseable {
         host.setName(configuration.getDefaultHost());
         tomcat.getEngine().addChild(host);
 
+        if (configuration.getCompression() != null && !configuration.getCompression().isBlank()) {
+            tomcat.getConnector().setProperty("compression", configuration.getCompression());
+        }
+
         if (configuration.getTomcatCustomizers() != null) {
             configuration.getTomcatCustomizers().forEach(c -> c.accept(tomcat));
         }
@@ -162,8 +166,12 @@ public class TomcatWebServer implements AutoCloseable {
         if (configuration.getAccessLogPattern() != null && !configuration.getAccessLogPattern().isBlank()) {
             final var logValve = new AccessLogValve();
             logValve.setPattern(configuration.getAccessLogPattern());
+            if (configuration.getSkipAccessLogAttribute() != null && !configuration.getSkipAccessLogAttribute().isBlank()) {
+                logValve.setCondition(configuration.getSkipAccessLogAttribute());
+            }
             ctx.getPipeline().addValve(logValve);
         }
+
         ctx.getPipeline().addValve(errorReportValve);
 
         // avoid warnings
