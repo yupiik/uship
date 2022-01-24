@@ -408,6 +408,8 @@ public class MyEntity {
 
 For more advanced cases you can use `query` and `batch` methods from the `Database` instance.
 
+TIP: to setup a `DataSource` you can rely on `org.apache.tomcat:tomcat-jdbc` and `TomcatDataSource` extension which enables to bind a connection to a thread to reuse it in your code if needed.
+
 === Advanced queries
 
 For advanced queries you can use a virtual table (it is a plain table but the `@Table` annotation is ignored) which would be used as project based on query aliases:
