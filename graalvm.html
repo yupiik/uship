@@ -304,6 +304,18 @@ if you want <code>openrpc</code> method to work properly, ensure to define the f
 &lt;/reflection&gt;</code></pre>
 </div>
 </div>
+<div class="paragraph">
+<p>Finally, if you use <code>io.yupiik.uship.persistence.impl.datasource.tomcat.TomcatDataSource</code> you can need to define the following proxy:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="xml" class="language-xml hljs">&lt;dynamicProxies&gt;
+  &lt;dynamicProxy&gt;
+    &lt;classes&gt;java.sql.Connection&lt;/classes&gt;
+  &lt;/dynamicProxy&gt;
+&lt;/dynamicProxies&gt;</code></pre>
+</div>
+</div>
                 
             </div>
         </div>
