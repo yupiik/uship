@@ -153,7 +153,7 @@ TIP: if you want `openrpc` method to work properly, ensure to define the followi
 </reflection>
 <reflection>
   <name>io.yupiik.uship.backbone.johnzon.jsonschema.Schema$SchemaTypeAdapter</name>
-  <allPublicMethods>true</allPublicMethods>
+  <allPublicConstructors>true</allPublicConstructors>
 </reflection>
 <reflection>
   <name>io.yupiik.uship.jsonrpc.core.openrpc.OpenRPC</name>
@@ -199,4 +199,14 @@ TIP: if you want `openrpc` method to work properly, ensure to define the followi
   <name>io.yupiik.uship.jsonrpc.core.openrpc.OpenRPC$Link</name>
   <allPublicMethods>true</allPublicMethods>
 </reflection>
+----
+
+Finally, if you use `io.yupiik.uship.persistence.impl.datasource.tomcat.TomcatDataSource` you can need to define the following proxy:
+[source,xml]
+----
+<dynamicProxies>
+  <dynamicProxy>
+    <classes>java.sql.Connection</classes>
+  </dynamicProxy>
+</dynamicProxies>
 ----
