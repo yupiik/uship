@@ -136,4 +136,4 @@ Here is the overall configuration for a standard application (using Yupiik Loggi
 </plugin>
 ----
 
-IMPORTANT: this configuration will work for your models if they have at least one explicit `@JsonbProperty` otherwise you will need to register them explicitly in `<reflections>` section.
+IMPORTANT: this configuration will work for your models if they have at least one explicit `@JsonbProperty` otherwise you will need to register them explicitly in `<reflections>` section or use `@RegisterClass` on the model (from `arthur-api` package, it can be in `provided` scope).
