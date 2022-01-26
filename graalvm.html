@@ -232,6 +232,66 @@ this configuration will work for your models if they have at least one explicit 
 </tr>
 </table>
 </div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Tip</div>
+</td>
+<td class="content">
+if you want <code>openrpc</code> method to work properly, ensure to define the following reflections:
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="xml" class="language-xml hljs">&lt;reflection&gt;
+  &lt;name&gt;io.yupiik.uship.jsonrpc.core.openrpc.OpenRPC&lt;/name&gt;
+  &lt;allPublicMethods&gt;true&lt;/allPublicMethods&gt;
+&lt;/reflection&gt;
+&lt;reflection&gt;
+  &lt;name&gt;io.yupiik.uship.jsonrpc.core.openrpc.OpenRPC$Server&lt;/name&gt;
+  &lt;allPublicMethods&gt;true&lt;/allPublicMethods&gt;
+&lt;/reflection&gt;
+&lt;reflection&gt;
+  &lt;name&gt;io.yupiik.uship.jsonrpc.core.openrpc.OpenRPC$RpcMethod&lt;/name&gt;
+  &lt;allPublicMethods&gt;true&lt;/allPublicMethods&gt;
+&lt;/reflection&gt;
+&lt;reflection&gt;
+  &lt;name&gt;io.yupiik.uship.jsonrpc.core.openrpc.OpenRPC$Components&lt;/name&gt;
+  &lt;allPublicMethods&gt;true&lt;/allPublicMethods&gt;
+&lt;/reflection&gt;
+&lt;reflection&gt;
+  &lt;name&gt;io.yupiik.uship.jsonrpc.core.openrpc.OpenRPC$License&lt;/name&gt;
+  &lt;allPublicMethods&gt;true&lt;/allPublicMethods&gt;
+&lt;/reflection&gt;
+&lt;reflection&gt;
+  &lt;name&gt;io.yupiik.uship.jsonrpc.core.openrpc.OpenRPC$Contact&lt;/name&gt;
+  &lt;allPublicMethods&gt;true&lt;/allPublicMethods&gt;
+&lt;/reflection&gt;
+&lt;reflection&gt;
+  &lt;name&gt;io.yupiik.uship.jsonrpc.core.openrpc.OpenRPC$Tag&lt;/name&gt;
+  &lt;allPublicMethods&gt;true&lt;/allPublicMethods&gt;
+&lt;/reflection&gt;
+&lt;reflection&gt;
+  &lt;name&gt;io.yupiik.uship.jsonrpc.core.openrpc.OpenRPC$ExternalDoc&lt;/name&gt;
+  &lt;allPublicMethods&gt;true&lt;/allPublicMethods&gt;
+&lt;/reflection&gt;
+&lt;reflection&gt;
+  &lt;name&gt;io.yupiik.uship.jsonrpc.core.openrpc.OpenRPC$Value&lt;/name&gt;
+  &lt;allPublicMethods&gt;true&lt;/allPublicMethods&gt;
+&lt;/reflection&gt;
+&lt;reflection&gt;
+  &lt;name&gt;io.yupiik.uship.jsonrpc.core.openrpc.OpenRPC$ErrorValue&lt;/name&gt;
+  &lt;allPublicMethods&gt;true&lt;/allPublicMethods&gt;
+&lt;/reflection&gt;
+&lt;reflection&gt;
+  &lt;name&gt;io.yupiik.uship.jsonrpc.core.openrpc.OpenRPC$Link&lt;/name&gt;
+  &lt;allPublicMethods&gt;true&lt;/allPublicMethods&gt;
+&lt;/reflection&gt;</code></pre>
+</div>
+</div>
                 
             </div>
         </div>
