@@ -226,7 +226,7 @@ it requires Arthur 1.0.14 or more recent.
 <div class="title">Important</div>
 </td>
 <td class="content">
-this configuration will work for your models if they have at least one explicit <code>@JsonbProperty</code> otherwise you will need to register them explicitly in <code>&lt;reflections&gt;</code> section.
+this configuration will work for your models if they have at least one explicit <code>@JsonbProperty</code> otherwise you will need to register them explicitly in <code>&lt;reflections&gt;</code> section or use <code>@RegisterClass</code> on the model (from <code>arthur-api</code> package, it can be in <code>provided</code> scope).
 </td>
 </tr>
 </table>
