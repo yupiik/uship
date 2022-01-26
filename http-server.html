@@ -18,7 +18,7 @@
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/asciidoctor.js/1.5.5-5/css/asciidoctor.min.css" integrity="sha512-kI7tn5cuEg16kMeXnYmg8rEJPxbxzEM7Gsr191iQdLDevFBLXPCSU9aZWSVuP61tMZWU3nBAR1cJ7SmXnOGLZw==" crossorigin="anonymous" />
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.3/css/bootstrap.min.css" integrity="sha512-oc9+XSs1H243/FRN9Rw62Fn8EtxjEYWHXRvjS43YtueEewbS6ObfXcJNyohjHqVKFPoXXUxwc+q1K7Dee6vv9g==" crossorigin="anonymous" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/styles/vs2015.min.css" integrity="sha512-w8aclkBlN3Ha08SMwFKXFJqhSUx2qlvTBFLLelF8sm4xQnlg64qmGB/A6pBIKy0W8Bo51yDMDtQiPLNRq1WMcQ==" crossorigin="anonymous" />
-    <link id="theme-style" rel="stylesheet" href="//yupiik.github.io/uship/css/theme.css?v=1.0.5-SNAPSHOT">
+    <link id="theme-style" rel="stylesheet" href="//yupiik.github.io/uship/css/theme.css?v=1.0.8-SNAPSHOT">
     
 </head>
     <header class="header fixed-top">
@@ -244,6 +244,56 @@ no need of a <code>META-INF/services/jakarta.servlet.ServletContainerInitializer
 </div>
 </div>
 </div>
+<div class="sect1">
+<h2 id="_open_tracing">(Open) Tracing</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><code>tracing</code> module provides a Tomcat valve you can set up on your web container to add tracing capabilities to your Tomcat:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">configuration.setContextCustomizers(List.of(c -&gt; c.getPipeline() <b class="conum">(1)</b>
+    .addValve(new TracingValve( <b class="conum">(1)</b>
+        new ServerTracingConfiguration(), <b class="conum">(2)</b>
+        new AccumulatingSpanCollector().setOnFlush(...), <b class="conum">(3)</b>
+        new IdGenerator(IdGenerator.Type.HEX), <b class="conum">(4)</b>
+        systemUTC())))); <b class="conum">(5)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Add the valve to the context pipeline, it is recommended to add it as early as possible (just after error report and access log valve in general),</p>
+</li>
+<li>
+<p>The configuration enables to customize the span tags and headers to read for span propagation,</p>
+</li>
+<li>
+<p>The accumulator is what will send/log/&#8230;&#8203; the spans once aggregated, ensure to configure it as needed,</p>
+</li>
+<li>
+<p>The <code>IdGenerator</code> provides the span/trace identifiers, it must be compatible with your collector (<code>hex</code> for zipkin for example),</p>
+</li>
+<li>
+<p>Finally the clock enables to timestamp the span and compute its duration.</p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+if you reuse <code>AccumulatingSpanCollector</code>, it is automatically closed with the valve "stop" phase.
+You can combine the accumulator with <code>ZipkinFlusher</code> <code>onFlush</code> implementation to flush to a zipkin collector v2.
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
                 
             </div>
         </div>
@@ -296,7 +346,7 @@ no need of a <code>META-INF/services/jakarta.servlet.ServletContainerInitializer
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/json.min.js" integrity="sha512-37sW1XqaJmseHAGNg4N4Y01u6g2do6LZL8tsziiL5CMXGy04Th65OXROw2jeDeXLo5+4Fsx7pmhEJJw77htBFg==" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/dockerfile.min.js" integrity="sha512-eRNl3ty7GOJPBN53nxLgtSSj2rkYj5/W0Vg0MFQBw8xAoILeT6byOogENHHCRRvHil4pKQ/HbgeJ5DOwQK3SJA==" crossorigin="anonymous"></script>
     <script>if (!(window.minisite || {}).skipHighlightJs) { hljs.highlightAll(); }</script>
-    <script src="//yupiik.github.io/uship/js/minisite.js?v=1.0.5-SNAPSHOT"></script>
+    <script src="//yupiik.github.io/uship/js/minisite.js?v=1.0.8-SNAPSHOT"></script>
     <script>$('.page-content-body').generatedNavMenu();</script>
     <script>
             document.querySelector('div.site-logo > a').href =
