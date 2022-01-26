@@ -138,3 +138,65 @@ Here is the overall configuration for a standard application (using Yupiik Loggi
 ----
 
 IMPORTANT: this configuration will work for your models if they have at least one explicit `@JsonbProperty` otherwise you will need to register them explicitly in `<reflections>` section or use `@RegisterClass` on the model (from `arthur-api` package, it can be in `provided` scope).
+
+
+TIP: if you want `openrpc` method to work properly, ensure to define the following reflections:
+[source,xml]
+----
+<reflection>
+  <name>io.yupiik.uship.backbone.johnzon.jsonschema.Schema</name>
+  <allPublicMethods>true</allPublicMethods>
+</reflection>
+<reflection>
+  <name>io.yupiik.uship.backbone.johnzon.jsonschema.Schema$SchemaType</name>
+  <allPublicMethods>true</allPublicMethods>
+</reflection>
+<reflection>
+  <name>io.yupiik.uship.backbone.johnzon.jsonschema.Schema$SchemaTypeAdapter</name>
+  <allPublicMethods>true</allPublicMethods>
+</reflection>
+<reflection>
+  <name>io.yupiik.uship.jsonrpc.core.openrpc.OpenRPC</name>
+  <allPublicMethods>true</allPublicMethods>
+</reflection>
+<reflection>
+  <name>io.yupiik.uship.jsonrpc.core.openrpc.OpenRPC$Server</name>
+  <allPublicMethods>true</allPublicMethods>
+</reflection>
+<reflection>
+  <name>io.yupiik.uship.jsonrpc.core.openrpc.OpenRPC$RpcMethod</name>
+  <allPublicMethods>true</allPublicMethods>
+</reflection>
+<reflection>
+  <name>io.yupiik.uship.jsonrpc.core.openrpc.OpenRPC$Components</name>
+  <allPublicMethods>true</allPublicMethods>
+</reflection>
+<reflection>
+  <name>io.yupiik.uship.jsonrpc.core.openrpc.OpenRPC$License</name>
+  <allPublicMethods>true</allPublicMethods>
+</reflection>
+<reflection>
+  <name>io.yupiik.uship.jsonrpc.core.openrpc.OpenRPC$Contact</name>
+  <allPublicMethods>true</allPublicMethods>
+</reflection>
+<reflection>
+  <name>io.yupiik.uship.jsonrpc.core.openrpc.OpenRPC$Tag</name>
+  <allPublicMethods>true</allPublicMethods>
+</reflection>
+<reflection>
+  <name>io.yupiik.uship.jsonrpc.core.openrpc.OpenRPC$ExternalDoc</name>
+  <allPublicMethods>true</allPublicMethods>
+</reflection>
+<reflection>
+  <name>io.yupiik.uship.jsonrpc.core.openrpc.OpenRPC$Value</name>
+  <allPublicMethods>true</allPublicMethods>
+</reflection>
+<reflection>
+  <name>io.yupiik.uship.jsonrpc.core.openrpc.OpenRPC$ErrorValue</name>
+  <allPublicMethods>true</allPublicMethods>
+</reflection>
+<reflection>
+  <name>io.yupiik.uship.jsonrpc.core.openrpc.OpenRPC$Link</name>
+  <allPublicMethods>true</allPublicMethods>
+</reflection>
+----
