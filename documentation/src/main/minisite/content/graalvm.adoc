@@ -123,9 +123,10 @@ Here is the overall configuration for a standard application (using Yupiik Loggi
           io.yupiik.batch.runtime.configuration.Param:allDeclaredConstructors=true|allDeclaredMethods=true|allDeclaredFields=true,
           jakarta.json.bind.annotation.JsonbProperty:allDeclaredConstructors=true|allDeclaredMethods=true|allDeclaredFields=true
         </extension.annotation.custom.annotations.properties>
-        <!-- enable auto registration of entities -->
+        <!-- enable auto registration of entities and JSON-RPC models/wrapper (thanks JsonbPropertyOrder) -->
         <extension.annotation.custom.annotations.class>
-          io.yupiik.uship.persistence.api.Table:allDeclaredConstructors=true|allDeclaredFields=true
+          io.yupiik.uship.persistence.api.Table:allDeclaredConstructors=true|allDeclaredFields=true,
+          jakarta.json.bind.annotation.JsonbPropertyOrder:allDeclaredConstructors=true|allDeclaredMethods=true|allDeclaredFields=true
         </extension.annotation.custom.annotations.class>
         <!-- avoid to start the whole application which uses @Observes @Initialized(ApplicationScoped.class) -->
         <extension.openwebbeans.container.se.properties>
