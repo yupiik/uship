@@ -84,3 +84,10 @@ xref:quarkus.adoc[Read more.]
 If you want a Microprofile JSON-RPC integration, you can reuse our `jsonrpc-core` module with some minimal setup.
 
 xref:microprofile.adoc[Read more.]
+
+== Go further with GraalVM
+
+You can also make your JSON-RPC (or web) server "native" thanks GraalVM.
+See the related documentation to learn more about it.
+
+xref:graalvm.adoc[Read more.]
