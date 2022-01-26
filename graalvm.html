@@ -206,9 +206,10 @@ it requires Arthur 1.0.14 or more recent.
           io.yupiik.batch.runtime.configuration.Param:allDeclaredConstructors=true|allDeclaredMethods=true|allDeclaredFields=true,
           jakarta.json.bind.annotation.JsonbProperty:allDeclaredConstructors=true|allDeclaredMethods=true|allDeclaredFields=true
         &lt;/extension.annotation.custom.annotations.properties&gt;
-        &lt;!-- enable auto registration of entities --&gt;
+        &lt;!-- enable auto registration of entities and JSON-RPC models/wrapper (thanks JsonbPropertyOrder) --&gt;
         &lt;extension.annotation.custom.annotations.class&gt;
-          io.yupiik.uship.persistence.api.Table:allDeclaredConstructors=true|allDeclaredFields=true
+          io.yupiik.uship.persistence.api.Table:allDeclaredConstructors=true|allDeclaredFields=true,
+          jakarta.json.bind.annotation.JsonbPropertyOrder:allDeclaredConstructors=true|allDeclaredMethods=true|allDeclaredFields=true
         &lt;/extension.annotation.custom.annotations.class&gt;
         &lt;!-- avoid to start the whole application which uses @Observes @Initialized(ApplicationScoped.class) --&gt;
         &lt;extension.openwebbeans.container.se.properties&gt;
