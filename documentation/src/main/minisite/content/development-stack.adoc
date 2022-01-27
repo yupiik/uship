@@ -38,19 +38,13 @@ Here is a `pom.xml` template you can use to get started:
     <dependency> <3>
       <groupId>io.yupiik.logging</groupId>
       <artifactId>yupiik-logging-jul</artifactId>
-      <version>1.0.0</version>
+      <version>1.0.2</version>
     </dependency>
     <dependency> <4>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
-      <version>5.8.0-M1</version>
+      <version>5.8.2</version>
       <scope>test</scope>
-      <exclusions>
-        <exclusion> <5>
-          <groupId>org.jetbrains.kotlin</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
   </dependencies>
 
