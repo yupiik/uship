@@ -28,7 +28,7 @@
   <name>UShip :: JSON-RPC :: Spring</name>
 
   <properties>
-    <spring-boot.version>2.6.1</spring-boot.version>
+    <spring-boot.version>2.6.6</spring-boot.version>
   </properties>
 
   <dependencies>
