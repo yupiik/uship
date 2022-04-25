@@ -45,6 +45,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -271,11 +273,23 @@ public class SchemaProcessor implements AutoCloseable {
     }
 
     protected void fillMeta(final Field f, final Schema schema) {
-        ofNullable(f.getAnnotation(JsonSchemaMetadata.class)).ifPresent(s -> {
-            of(s.title()).filter(it -> !it.isEmpty()).ifPresent(schema::setTitle);
-            of(s.description()).filter(it -> !it.isEmpty()).ifPresent(schema::setDescription);
-        });
+        ofNullable(f.getAnnotation(JsonSchemaMetadata.class))
+                .or(() -> findRecordJsonSchemaMetadata(f))
+                .ifPresent(s -> {
+                    of(s.title()).filter(it -> !it.isEmpty()).ifPresent(schema::setTitle);
+                    of(s.description()).filter(it -> !it.isEmpty()).ifPresent(schema::setDescription);
+                });
         ofNullable(f.getAnnotation(Deprecated.class)).map(it -> true).ifPresent(schema::setDeprecated);
+    }
+
+    private Optional<JsonSchemaMetadata> findRecordJsonSchemaMetadata(final Field field) {
+        return Stream.of(field.getDeclaringClass().getConstructors())
+                .flatMap(c -> Stream.of(c.getParameters()))
+                .filter(p -> Objects.equals(p.getName(), field.getName()) &&
+                        Objects.equals(field.getGenericType(), p.getParameterizedType()) &&
+                        p.isAnnotationPresent(JsonSchemaMetadata.class))
+                .findFirst()
+                .map(p -> p.getAnnotation(JsonSchemaMetadata.class));
     }
 
     protected void onIgnored(final Schema schema, final Field f, final Cache cache) {
@@ -612,7 +626,7 @@ public class SchemaProcessor implements AutoCloseable {
             try {
                 return type.getConstructor().newInstance();
             } catch (final NoSuchMethodException | InstantiationException | IllegalAccessException
-                    | InvocationTargetException e) {
+                           | InvocationTargetException e) {
                 // no-op, ignore defaults there
             }
             return null;
@@ -623,7 +637,7 @@ public class SchemaProcessor implements AutoCloseable {
                 try {
                     return new Instance(Class.class.cast(model).getConstructor().newInstance(), true);
                 } catch (final NoSuchMethodException | InstantiationException | IllegalAccessException
-                        | InvocationTargetException e) {
+                               | InvocationTargetException e) {
                     // no-op, ignore defaults there
                 }
             }
