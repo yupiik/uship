@@ -65,9 +65,11 @@ import static java.util.stream.Collectors.toMap;
 // todo: some operation don't need the resultset.metadata usage (in particular queries we build ourselve internally).
 public class EntityImpl<E> implements Entity<E> {
     private final DatabaseImpl database;
-    private final Class<?> rootType;
+    private final Class<E> rootType;
     private final Map<String, ColumnModel> fields;
-    private final List<ColumnModel> idFields;
+    private final Map<String, Field> fieldsIndexedByJavaName;
+    private final List<IdColumnModel> idFields;
+    private final Collection<ColumnModel> insertFields;
     private final Map<String, ParameterHolder> constructorParameters;
     private final Constructor<E> constructor;
     private final String table;
@@ -82,6 +84,7 @@ public class EntityImpl<E> implements Entity<E> {
     private final List<Method> onLoads;
     private final DatabaseTranslation translation;
     private final List<ColumnMetadata> columns;
+    private final boolean autoIncremented;
 
     public EntityImpl(final DatabaseImpl database, final Class<E> type, final DatabaseTranslation translation) {
         final var record = Records.isRecord(type);
@@ -119,23 +122,41 @@ public class EntityImpl<E> implements Entity<E> {
                             throw new IllegalArgumentException("Ambiguous field: " + a);
                         }, CaseInsensitiveLinkedHashMap::new));
 
+        final Function<Field, Optional<Id>> findId = field -> {
+            final var id = field.getAnnotation(Id.class);
+            if (id == null) {
+                return ofNullable(constructorParameters.get(field.getName()))
+                        .filter(p -> p.parameter.isAnnotationPresent(Id.class))
+                        .map(p -> p.parameter.getAnnotation(Id.class));
+            }
+            return Optional.of(id);
+        };
         this.idFields = this.fields.values().stream()
                 .filter(it -> it.field.isAnnotationPresent(Id.class) || ofNullable(constructorParameters.get(it.field.getName()))
                         .map(p -> p.parameter.isAnnotationPresent(Id.class))
                         .filter(ok -> ok)
                         .isPresent())
-                .sorted(comparing(f -> {
-                    final var id = f.field.getAnnotation(Id.class);
-                    if (id == null) {
-                        return ofNullable(constructorParameters.get(f.field.getName()))
-                                .filter(p -> p.parameter.isAnnotationPresent(Id.class))
-                                .map(p -> p.parameter.getAnnotation(Id.class))
-                                .map(Id::order)
-                                .orElseThrow();
-                    }
-                    return id.order();
-                }))
+                .sorted(comparing(f -> findId.apply(f.field).orElseThrow().order()))
+                .map(f -> new IdColumnModel(
+                        f.field, f.type, f.valueMapper, f.hash,
+                        findId.apply(f.field).orElseThrow().autoIncremented()))
                 .collect(toList());
+
+        autoIncremented = idFields.stream().anyMatch(it -> it.autoIncremented);
+        if (autoIncremented && idFields.size() != 1) {
+            throw new IllegalStateException("Only one @Id field can be autoIncremented in current version: " + rootType.getName());
+        }
+        if (autoIncremented) {
+            insertFields = fields.values().stream()
+                    .filter(it -> it.field != idFields.get(0).field)
+                    .collect(toList());
+        } else {
+            insertFields = fields.values();
+        }
+
+        this.fieldsIndexedByJavaName = record && autoIncremented ?
+                this.fields.values().stream().collect(toMap(c -> c.field.getName(), c -> c.field)) :
+                Map.of() /* unused, save mem */;
 
         this.table = translation.wrapTableName(ofNullable(type.getAnnotation(Table.class))
                 .map(Table::value)
@@ -153,6 +174,12 @@ public class EntityImpl<E> implements Entity<E> {
         final var fieldNamesCommaSeparated = fields.values().stream()
                 .map(f -> translation.wrapFieldName(name(f.field)))
                 .collect(joining(", "));
+        final var insertFieldsCommaSeparated = autoIncremented ?
+                fields.values().stream()
+                        .filter(it -> it.field != idFields.get(0).field)
+                        .map(f -> translation.wrapFieldName(name(f.field)))
+                        .collect(joining(", ")) :
+                fieldNamesCommaSeparated;
         this.findByIdQuery = "" +
                 "SELECT " +
                 fieldNamesCommaSeparated +
@@ -165,8 +192,10 @@ public class EntityImpl<E> implements Entity<E> {
         this.deleteQuery = "" +
                 "DELETE FROM " + table + byIdWhereClause;
         this.insertQuery = "" +
-                "INSERT INTO " + table + " (" + fieldNamesCommaSeparated + ") " +
-                "VALUES (" + fields.values().stream().map(f -> "?").collect(joining(", ")) + ")";
+                "INSERT INTO " + table + " (" + insertFieldsCommaSeparated + ") " +
+                "VALUES (" + insertFields.stream()
+                .map(f -> "?")
+                .collect(joining(", ")) + ")";
         this.findAllQuery = "" +
                 "SELECT " + fieldNamesCommaSeparated +
                 " FROM " + table;
@@ -186,6 +215,10 @@ public class EntityImpl<E> implements Entity<E> {
                 .collect(toList());
     }
 
+    public boolean isAutoIncremented() {
+        return autoIncremented;
+    }
+
     private Column.ValueMapper<?, ?> toMapper(final Class<? extends Column.ValueMapper> value) {
         if (value == null || value == Column.ValueMapper.class) {
             return null;
@@ -199,7 +232,8 @@ public class EntityImpl<E> implements Entity<E> {
         }
         try {
             return value.getConstructor().newInstance();
-        } catch (final InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+        } catch (final InstantiationException | IllegalAccessException | InvocationTargetException |
+                       NoSuchMethodException e) {
             throw new PersistenceException(e);
         }
     }
@@ -424,11 +458,51 @@ public class EntityImpl<E> implements Entity<E> {
         });
     }
 
+    public E onAfterInsert(final Object instance, final PreparedStatement statement) {
+        if (!autoIncremented) {
+            return rootType.cast(instance);
+        }
+
+        try (final var keys = statement.getGeneratedKeys()) {
+            if (!keys.next()) {
+                throw new PersistenceException("No generated key available");
+            }
+            final var idColumn = idFields.get(0);
+            final var value = database.lookup(keys, 1, idColumn.type);
+            if (constructor.getParameterCount() == 0) {
+                idColumn.field.set(instance, value);
+            } else { // record so copy the instance with the new id
+                final var params = new Object[constructor.getParameterCount()];
+                int idx = 0;
+                for (final var entry : constructorParameters.entrySet()) {
+                    final var field = fieldsIndexedByJavaName.get(entry.getValue().parameter.getName());
+                    if (field == idColumn.field) {
+                        params[idx++] = value;
+                    } else {
+                        params[idx++] = field.get(instance);
+                    }
+                }
+                try {
+                    return constructor.newInstance(params);
+                } catch (final InstantiationException e) {
+                    throw new PersistenceException(e);
+                } catch (final InvocationTargetException e) {
+                    throw new PersistenceException(e.getTargetException());
+                }
+            }
+        } catch (final SQLException e) {
+            throw new PersistenceException(e);
+        } catch (final IllegalAccessException e) {
+            throw new IllegalStateException(e);
+        }
+        return rootType.cast(instance);
+    }
+
     public void onInsert(final Object instance, final PreparedStatement statement) {
         callMethodsWith(onInserts, instance);
 
         int idx = 1;
-        for (final var field : fields.values()) {
+        for (final var field : insertFields) {
             doBind(instance, statement, idx++, field);
         }
     }
@@ -702,11 +776,32 @@ public class EntityImpl<E> implements Entity<E> {
         // other methods are not used (why we need to break this inheritance thing)
     }
 
+    private static class IdColumnModel extends ColumnModel {
+        private final boolean autoIncremented;
+
+        private IdColumnModel(final Field field, final Class<?> type,
+                              final Column.ValueMapper<?, ?> valueMapper,
+                              final int hash, final boolean autoIncremented) {
+            super(field, type, valueMapper, hash);
+            this.autoIncremented = autoIncremented;
+        }
+    }
+
     private static class ColumnModel {
-        private final Field field;
-        private final Class<?> type;
+        protected final Field field;
+        protected final Class<?> type;
+        protected final Column.ValueMapper<?, ?> valueMapper;
+
         private final int hash;
-        private final Column.ValueMapper<?, ?> valueMapper;
+
+        private ColumnModel(final Field field, final Class<?> type,
+                            final Column.ValueMapper<?, ?> valueMapper,
+                            final int hash) {
+            this.field = field;
+            this.type = type;
+            this.hash = hash;
+            this.valueMapper = valueMapper;
+        }
 
         private ColumnModel(final Field field, final Column.ValueMapper<?, ?> valueMapper) {
             this.field = field;
@@ -729,10 +824,7 @@ public class EntityImpl<E> implements Entity<E> {
             if (this == o) {
                 return true;
             }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            return field.equals(ColumnModel.class.cast(o).field);
+            return ColumnModel.class.isInstance(o) && field.equals(ColumnModel.class.cast(o).field);
         }
 
         @Override

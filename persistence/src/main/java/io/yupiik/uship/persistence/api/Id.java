@@ -26,7 +26,15 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Retention(RUNTIME)
 public @interface Id {
     /**
-     * @return when using multiple times this anontation, enables to sort the fields.
+     * @return when using multiple times this annotation, enables to sort the fields.
      */
     int order() default 0;
+
+    /**
+     * @return it is recommended to use an UUID or equivalent as identifier but when mapping an existing
+     * database you can need to synchronize and use {@link java.sql.Statement#getGeneratedKeys} to map the keys.
+     * For these cases, set this toggle to true.
+     * If your model is a POJO the value is directly set but if it is a record the value will be copied at insert time.
+     */
+    boolean autoIncremented() default false;
 }

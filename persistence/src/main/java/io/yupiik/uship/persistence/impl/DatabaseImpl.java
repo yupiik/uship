@@ -247,14 +247,17 @@ public class DatabaseImpl implements Database {
     @Override
     public <T> T insert(final T instance) {
         requireNonNull(instance, "can't persist a null instance");
-        final var model = getEntityImpl(instance.getClass());
+        final var model = (EntityImpl<T>) getEntityImpl(instance.getClass());
+        final var insertQuery = model.getInsertQuery();
         try (final var connection = datasource.getConnection();
-             final var stmt = connection.prepareStatement(model.getInsertQuery())) {
+             final var stmt = !model.isAutoIncremented() ?
+                     connection.prepareStatement(insertQuery) :
+                     connection.prepareStatement(insertQuery, PreparedStatement.RETURN_GENERATED_KEYS)) {
             model.onInsert(instance, stmt);
             if (stmt.executeUpdate() == 0) {
                 throw new PersistenceException("Can't save " + instance);
             }
-            return instance;
+            return model.onAfterInsert(instance, stmt);
         } catch (final SQLException ex) {
             throw new PersistenceException(ex);
         }
