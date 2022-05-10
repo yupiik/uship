@@ -43,3 +43,28 @@ It will probably be tackled in a few versions but was not a pre-requisite of the
 == Documentation
 
 You can learn more by reading the link:https://yupiik.github.io/uship/[online documentation].
+
+== Release
+
+Build and publish to central:
+
+[source, bash]
+----
+mvn release:prepare release:perform -Pnative -Prelease
+----
+
+Publish documentation on github page:
+
+[source, bash]
+----
+git checkout -b <release-tag> <release-tag> && mvn clean package -Pgh-pages`
+----
+
+Pubish release on Github by running in https://github.com/yupiik/yupiik.github.io project:
+
+[source, bash]
+----
+mvn yupiik-tools:synchronize-github-releases@uship -Psynchronize-github-releases
+----
+
+
