@@ -21,7 +21,7 @@
 
   <groupId>io.yupiik.uship</groupId>
   <artifactId>uship</artifactId>
-  <version>1.0.8</version>
+  <version>1.0.9-SNAPSHOT</version>
   <name>UShip</name>
   <description>Simple JSON-RPC based stack for microservices.</description>
   <packaging>pom</packaging>
