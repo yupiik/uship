@@ -44,7 +44,7 @@
         <artifactId>yupiik-tools-maven-plugin</artifactId>
         <version>1.0.19</version>
         <configuration>
-          <siteBase>//yupiik.github.io/uship</siteBase>
+          <siteBase>//www.yupiik.io/uship</siteBase>
           <logoText>Yupiik µShip</logoText>
           <indexText>Yupiik µShip</indexText>
           <indexSubTitle>A light microservice stack.</indexSubTitle>
