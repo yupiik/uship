@@ -2,7 +2,7 @@
   "skip": false,
   "name": "uShip",
   "description": "Lightweight microservice stack for modern applications.",
-  "website": "https://github.com/yupiik/uship",
+  "website": "https://www.yupiik.io/uship",
   "logo": "https://www.yupiik.com/img/logo.png",
   "categories": [
     "java",
