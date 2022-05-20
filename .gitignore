@@ -4,3 +4,5 @@
 *.iws
 target
 generated*
+.node
+node_modules

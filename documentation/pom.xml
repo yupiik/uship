@@ -27,6 +27,14 @@
   <artifactId>documentation</artifactId>
   <name>UShip :: Documentation</name>
 
+  <properties>
+    <node.environment>production</node.environment>
+    <maven.build.timestamp.format>yyyMMddHHmmss</maven.build.timestamp.format>
+    <minisite.attributes.build_date>${maven.build.timestamp}</minisite.attributes.build_date>
+    <minisite.attributes.js_base>/</minisite.attributes.js_base>
+    <minisite.preActions.tomcat.ignore>false</minisite.preActions.tomcat.ignore>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -35,11 +43,64 @@
       <type>pom</type>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>backbone-johnzon</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
   </dependencies>
 
   <build>
     <plugins>
-      <plugin> <!-- mvn [compile] yupiik-tools:serve-minisite -e -->
+      <plugin>
+        <groupId>com.github.eirslett</groupId>
+        <artifactId>frontend-maven-plugin</artifactId>
+        <version>1.12.0</version>
+        <executions>
+          <execution>
+            <id>install-node-npm</id>
+            <phase>generate-resources</phase>
+            <inherited>false</inherited>
+            <goals>
+              <goal>install-node-and-npm</goal>
+            </goals>
+            <configuration>
+              <installDirectory>${project.basedir}/.node</installDirectory>
+              <nodeVersion>v18.0.0</nodeVersion>
+              <npmVersion>8.6.0</npmVersion>
+            </configuration>
+          </execution>
+          <execution>
+            <id>npm-install</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>npm-build</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+            <configuration>
+              <arguments>run build</arguments>
+              <environmentVariables>
+                <OUTPUT>${project.build.directory}/${project.build.finalName}/</OUTPUT>
+                <PROJECT_VERSION>${project.version}</PROJECT_VERSION>
+                <BUILD_DATE>${maven.build.timestamp}</BUILD_DATE>
+                <NODE_ENV>${node.environment}</NODE_ENV>
+              </environmentVariables>
+            </configuration>
+          </execution>
+        </executions>
+        <configuration>
+          <installDirectory>${project.basedir}/.node</installDirectory>
+          <workingDirectory>${project.basedir}/src/main/frontend</workingDirectory>
+        </configuration>
+      </plugin>
+      <plugin> <!-- mvn [compile] yupiik-tools:serve-minisite -Dminisite.attributes.build_date=dev -e -->
         <groupId>io.yupiik.maven</groupId>
         <artifactId>yupiik-tools-maven-plugin</artifactId>
         <version>1.0.19</version>
@@ -48,6 +109,11 @@
           <logoText>Yupiik µShip</logoText>
           <indexText>Yupiik µShip</indexText>
           <indexSubTitle>A light microservice stack.</indexSubTitle>
+          <attributes>
+            <build_date>${minisite.attributes.build_date}</build_date>
+            <js_base>${minisite.attributes.js_base}</js_base>
+            <partialsdir>${project.basedir}/src/main/minisite/content/_partials</partialsdir>
+          </attributes>
           <customScripts>
             &lt;script&gt;
             document.querySelector('div.site-logo &gt; a').href =
@@ -55,6 +121,15 @@
             &lt;/script&gt;
           </customScripts>
           <preActions>
+            <preAction>
+              <type>io.yupiik.uship.documentation.TomcatConnectorAttributesExtractor</type>
+              <configuration>
+                <tomcat.version>${tomcat.version}</tomcat.version>
+                <github>https://raw.githubusercontent.com/apache/tomcat/${tomcat.version}/webapps/docs/config/http.xml</github>
+                <output>${project.basedir}/src/main/minisite/content/_partials/generated/tomcat.connector.attributes.json</output>
+                <ignore>${minisite.preActions.tomcat.ignore}</ignore>
+              </configuration>
+            </preAction>
           </preActions>
           <git>
             <ignore>true</ignore>
@@ -65,7 +140,7 @@
   </build>
 
   <profiles>
-    <profile> <!--  by default we want changes we do in the project to be reflected in the doc even without building it  -->
+    <profile> <!--  by default we want chanmges we do in the project to be reflected in the doc even without building it  -->
       <id>generate-content-but-not-site</id>
       <activation>
         <activeByDefault>true</activeByDefault>
@@ -95,6 +170,7 @@
       <id>gh-pages</id>
       <properties>
         <minisite.serverId>github.com</minisite.serverId>
+        <minisite.attributes.js_base>/uship/</minisite.attributes.js_base>
       </properties>
       <build>
         <plugins>

@@ -1,0 +1,15 @@
+{
+  "private": true,
+  "description": "Tomcat/UShip Helper",
+  "scripts": {
+    "build": "node ./esbuild",
+    "start": "NODE_ENV=dev npm run build"
+  },
+  "devDependencies": {
+    "esbuild": "^0.14.9",
+    "esbuild-sass-plugin": "^2.2.6",
+    "postcss": "^8.4.12",
+    "postcss-modules": "^4.3.1",
+    "preact": "^10.7.1"
+  }
+}

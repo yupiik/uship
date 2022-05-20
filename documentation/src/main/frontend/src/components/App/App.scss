@@ -1,0 +1,7 @@
+// override some global colors
+@use '../../variables';
+
+.App {
+    min-height: 100vh;
+    height: 100%;
+}

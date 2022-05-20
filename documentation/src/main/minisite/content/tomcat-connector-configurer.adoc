@@ -1,0 +1,10 @@
+= Connector Configurer
+
+[subs=attributes]
+++++
+<div id="tomcat-preact"></div>
+<script>window.tomcatPreact =
+include::{partialsdir}/generated/tomcat.connector.attributes.json[]
+;</script>
+<script defer src="{js_base}js/tomcat-configurer.{build_date}.js"></script>
+++++

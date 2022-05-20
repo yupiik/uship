@@ -1,0 +1,28 @@
+.ConnectorConfigurer {
+    .ConnectorDescription {
+        font-style: italic;
+    }
+
+    .ConnectorConfigurationSample {
+        margin-top: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .Configuration {
+        >div::after {
+            content: " ";
+            display: block;
+            height: 1px;
+            background: lightgrey;
+            width: 100%;
+            margin: 0.2rem;
+        }
+        >div:last-child:after {
+            display: none;
+        }
+
+        .BooleanValue {
+            margin-left: 1rem;
+        }
+    }
+}
