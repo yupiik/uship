@@ -1,4 +1,4 @@
-= Connector Configurer
+= Tomcat Configurer
 
 [subs=attributes]
 ++++

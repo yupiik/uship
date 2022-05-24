@@ -96,6 +96,7 @@
           </execution>
         </executions>
         <configuration>
+          <skip>${settings.offline}</skip>
           <installDirectory>${project.basedir}/.node</installDirectory>
           <workingDirectory>${project.basedir}/src/main/frontend</workingDirectory>
         </configuration>
@@ -125,9 +126,14 @@
               <type>io.yupiik.uship.documentation.TomcatConnectorAttributesExtractor</type>
               <configuration>
                 <tomcat.version>${tomcat.version}</tomcat.version>
-                <github>https://raw.githubusercontent.com/apache/tomcat/${tomcat.version}/webapps/docs/config/http.xml</github>
+                <github>
+                  https://raw.githubusercontent.com/apache/tomcat/${tomcat.version}/webapps/docs/config/http.xml,
+                  https://raw.githubusercontent.com/apache/tomcat/${tomcat.version}/webapps/docs/config/valve.xml,
+                  https://raw.githubusercontent.com/apache/tomcat/${tomcat.version}/webapps/docs/ssl-howto.xml
+                </github>
                 <output>${project.basedir}/src/main/minisite/content/_partials/generated/tomcat.connector.attributes.json</output>
                 <ignore>${minisite.preActions.tomcat.ignore}</ignore>
+                <cache>${settings.localRepository}/io/yupiik/uship/documentation/cache/${tomcat.version}</cache>
               </configuration>
             </preAction>
           </preActions>

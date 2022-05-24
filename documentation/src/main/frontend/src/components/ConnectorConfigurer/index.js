@@ -1,4 +1,8 @@
 import { useMemo, useState } from 'preact/hooks';
+import { defaultFor } from '../../processor/defaultFor';
+import { enabledParams } from '../../processor/enabledParameters';
+import { Parameters } from '../Parameters';
+import { Snippets } from '../Snippets';
 import css from './ConnectorConfigurer.scss';
 
 const CONNECTOR_TYPES = [ // /!\ sorted by importance!
@@ -32,31 +36,6 @@ const CONNECTOR_TYPES = [ // /!\ sorted by importance!
         ],
     },
 ];
-
-const enabledParams = params => Object
-    .keys(params)
-    .sort()
-    .filter(p => params[p].checked);
-
-const defaultFor = (all, name) => {
-    const selected = all.filter(it => it.name === name);
-    if (selected.length === 1) {
-        const { type, defaultValue } = selected[0];
-        switch (type || '') {
-            case 'integer':
-                return defaultValue === undefined ? '0' : defaultValue;
-            case 'string':
-                return defaultValue === undefined ? '' : defaultValue;
-            case 'boolean':
-                if (defaultValue !== undefined) {
-                    return defaultValue;
-                }
-            default:
-            // use global default
-        }
-    }
-    return 'true';
-};
 
 const asXml = (connector, params, paramsSpec) => {
     const active = enabledParams(params);
@@ -124,171 +103,8 @@ const ConnectorDescription = ({ selected }) => (
     </div>
 );
 
-const Snippet = ({ value, language }) => (
-    <pre>
-        <code
-            class={`hljs language-${language}`}
-            dangerouslySetInnerHTML={{ __html: value }}
-        />
-    </pre>
-);
-const Snippets = ({ xml, java }) => (
-    <div className={`${css.ConnectorConfigurationSample} row`}>
-        <div className="col-sm-7">
-            <Snippet value={java} language="java" />
-        </div>
-        <div className="col-sm-5">
-            <Snippet value={xml} language="xml" />
-        </div>
-    </div>
-);
-
-const ParameterInput = ({
-    name,
-    type,
-    value,
-    allowedvalues,
-    onChange,
-}) => {
-    switch (type || '') {
-        case 'string':
-            if (allowedvalues && allowedvalues.length > 0) {
-                return (
-                    <div class="form-group">
-                        <select onChange={e => onChange(e)} className="form-control">
-                            {allowedvalues.map(it => (<option value={it} key={`${name}__${it}`}>{it}</option>))}
-                        </select>
-                    </div>
-                );
-            }
-            return (
-                <div class="form-group">
-                    <input
-                        className="form-control"
-                        placeholder={`${name} value...`}
-                        value={value}
-                        onKeyUp={e => onChange(e)}
-                        onChange={e => onChange(e)}
-                    />
-                </div>
-            );
-        case 'integer':
-            return (
-                <div class="form-group">
-                    <input
-                        className="form-control"
-                        placeholder={`${name} value...`}
-                        type="number"
-                        value={value}
-                        onKeyUp={e => onChange(e)}
-                        onChange={e => onChange(e)}
-                    />
-                </div>
-            );
-        case 'boolean':
-            const id = `${name}_value`;
-            return (
-                <div className={`form-check ${css.BooleanValue}`}>
-                    <input
-                        className="form-check-input"
-                        type="checkbox"
-                        checked={value && value !== 'false'}
-                        onChange={e => onChange({
-                            ...e,
-                            target: {
-                                ...e.target,
-                                value: e.target.checked,
-                            },
-                        })}
-                        id={id} />
-                    <label
-                        className="form-check-label"
-                        for={id}>
-                        Enabled
-                    </label>
-                </div>
-            );
-        default:
-            return undefined;
-    }
-};
-const Parameter = ({
-    name, required, description,
-    type, defaultValue, allowedvalues,
-    onCheck, onValue,
-    enabledParameters,
-}) => {
-    const id = `param_${name}`;
-    const { checked, value } = enabledParameters[name] || { checked: false };
-    return (
-        <div>
-            <div className="form-check" key={name}>
-                <input
-                    className="form-check-input"
-                    type="checkbox"
-                    checked={checked}
-                    onChange={e => onCheck(e)}
-                    id={id} />
-                <label
-                    className="form-check-label"
-                    for={id}>
-                    <div>
-                        <code>{name}{required && '*'}</code>
-                    </div>
-                    <div>{description}</div>
-                </label>
-            </div>
-            {checked &&
-                <ParameterInput
-                    name={name}
-                    type={type}
-                    allowedvalues={allowedvalues}
-                    value={value !== undefined ? value : (defaultValue === undefined ? '' : defaultValue)}
-                    onChange={e => onValue(e)}
-                />}
-        </div>
-    );
-};
-
-const Configuration = ({ parameters, enabledParameters, setEnabledParameters }) => (
-    <div className={css.Configuration}>
-        {parameters.map((p, i) => {
-            const Item = (
-                <Parameter
-                    {...p}
-                    enabledParameters={enabledParameters}
-                    onCheck={e => setEnabledParameters({
-                        ...enabledParameters,
-                        [p.name]: {
-                            ...enabledParameters[p.name],
-                            checked: e.target.checked,
-                        },
-                    })}
-                    onValue={e => {
-                        setEnabledParameters({
-                            ...enabledParameters,
-                            [p.name]: {
-                                ...enabledParameters[p.name],
-                                value: e.target.value,
-                            },
-                        });
-                    }} />
-            );
-            if (i == 0 || parameters[i - 1].section !== p.section) {
-                return (
-                    <>
-                        <h3>{p.section}</h3>
-                        {Item}
-                    </>
-                );
-            }
-            return (<>{Item}</>);
-        })}
-    </div>
-);
-
 export const ConnectorConfigurer = ({
-    sections,
+    connectors,
 }) => {
     const [selected, setSelected] = useState('');
     const [enabledParameters, setEnabledParameters] = useState({});
@@ -297,11 +113,11 @@ export const ConnectorConfigurer = ({
             return [];
         }
         const filters = findConnector(selected).sectionsMatchers;
-        return sections
+        return connectors
             .filter(it => filters.some(f => f(it.name)))
             .map(section => (section.attributes || []).map(it => ({ ...it, section: section.name })))
             .reduce((agg, attributes) => ([...agg, ...attributes]), []);
-    }, [sections, selected]);
+    }, [connectors, selected]);
 
     const previewXmlSnippet = useMemo(() => !selected || selected.length === 0 ?
         undefined :
@@ -330,7 +146,7 @@ export const ConnectorConfigurer = ({
                 />}
 
             {parameters && parameters.length > 0 &&
-                <Configuration
+                <Parameters
                     parameters={parameters}
                     enabledParameters={enabledParameters}
                     setEnabledParameters={setEnabledParameters}

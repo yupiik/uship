@@ -26,6 +26,8 @@ import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 import java.io.ByteArrayInputStream;
@@ -65,16 +67,25 @@ public class TomcatConnectorAttributesExtractor implements Runnable {
         this.configuration = configuration;
     }
 
-    private void doRun() throws Exception {
-        final var xml = fetchDoc(getDocUrl());
-        final var document = parseDoc(xml.body());
-        document.normalize();
+    private void doRun() {
+        final var urls = Stream.of(getDocUrl().split(","))
+                .map(String::strip)
+                .filter(it -> !it.isBlank())
+                .toArray(String[]::new);
 
-        final var sections = new Sections(
-                configuration.getOrDefault("tomcat.version", "1.0.21"),
-                findAttributes(document));
+        final var xPath = XPathFactory.newInstance().newXPath();
+        try {
+            final var sections = new Sections(
+                    configuration.getOrDefault("tomcat.version", "1.0.21"),
+                    fetchConnectorSections(urls[0], xPath),
+                    fetchValves(urls[1], xPath));
 
-        write(sections);
+            write(sections);
+        } catch (final RuntimeException re) {
+            throw re;
+        } catch (final Exception re) {
+            throw new IllegalStateException(re);
+        }
     }
 
     @Override
@@ -85,16 +96,7 @@ public class TomcatConnectorAttributesExtractor implements Runnable {
         }
 
         // todo: support multiple versions?
-        try {
-            doRun();
-        } catch (final RuntimeException re) {
-            throw re;
-        } catch (final InterruptedException ie) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException(ie);
-        } catch (final Exception ioe) {
-            throw new IllegalStateException(ioe);
-        }
+        doRun();
     }
 
     private void write(final Sections sections) throws Exception {
@@ -121,8 +123,70 @@ public class TomcatConnectorAttributesExtractor implements Runnable {
         }
     }
 
-    private List<Section> findAttributes(final Document document) throws XPathExpressionException {
-        final var xPath = XPathFactory.newInstance().newXPath();
+    private List<Section> fetchValves(final String url, final XPath xPath) throws XPathExpressionException, IOException, InterruptedException, ParserConfigurationException, SAXException {
+        final var document = parseConnector(fetchDoc(url));
+        document.normalize();
+
+        final var attributesRoots = xPath.compile("/document/body/section/subsection");
+        final var attributeSelector = xPath.compile("subsection[@name='Attributes']/attributes/attribute");
+        final var descriptionSelector = xPath.compile("p");
+        final var introductionSelector = xPath.compile("subsection[@name='Introduction']");
+
+        final var valves = NodeList.class.cast(attributesRoots.evaluate(document, NODESET));
+
+        final var sanitizer = Pattern.compile("\n +");
+        return stream(valves)
+                .map(e -> toSection(attributeSelector, descriptionSelector, introductionSelector, sanitizer, e))
+                .collect(toList());
+    }
+
+    private Section toSection(final XPathExpression attributeSelector,
+                              final XPathExpression descriptionSelector,
+                              final XPathExpression introductionSelector,
+                              final Pattern sanitizer, final Node node) {
+        try {
+            final var evaluated = attributeSelector.evaluate(node, NODESET);
+            final var configs = stream(NodeList.class.cast(evaluated))
+                    .map(it -> {
+                        final var nodeAttributes = it.getAttributes();
+                        final var name = nodeAttributes
+                                .getNamedItem("name")
+                                .getNodeValue();
+                        try {
+                            var description = sanitizer.matcher(asText(descriptionSelector.evaluate(it, NODESET))).replaceAll(" ");
+                            if (!description.endsWith(".") && !description.isBlank()) {
+                                description += ".";
+                            }
+                            final var type = findType(name, description);
+                            return new Attribute(
+                                    name,
+                                    description,
+                                    Boolean.parseBoolean(nodeAttributes
+                                            .getNamedItem("required")
+                                            .getNodeValue()),
+                                    type,
+                                    findDefault(description)
+                                            .orElseGet(() -> "boolean".equals(type) ? "false" : null),
+                                    findAllowedValues(description));
+                        } catch (final XPathExpressionException ex) {
+                            throw new IllegalStateException(ex);
+                        }
+                    })
+                    .sorted(comparing(a -> a.name.toLowerCase(ROOT)))
+                    .collect(toList());
+            return new Section(
+                    node.getAttributes().getNamedItem("name").getNodeValue(),
+                    asText(introductionSelector.evaluate(node, NODESET)),
+                    configs);
+        } catch (final XPathExpressionException ex) {
+            throw new IllegalStateException(ex);
+        }
+    }
+
+    private List<Section> fetchConnectorSections(final String url, final XPath xPath) throws XPathExpressionException, IOException, InterruptedException, ParserConfigurationException, SAXException {
+        final var document = parseConnector(fetchDoc(url));
+        document.normalize();
+
         final var attributesRoots = xPath.compile("//section[@name='Attributes']");
         final var attributeSelector = xPath.compile("attributes/attribute");
         final var descriptionSelector = xPath.compile("p");
@@ -134,52 +198,8 @@ public class TomcatConnectorAttributesExtractor implements Runnable {
         return stream(attributes) // normally size == 1
                 .flatMap(it -> stream(it.getChildNodes()))
                 .filter(it -> "subsection".equals(it.getLocalName()))
-                .map(e -> {
-                    try {
-                        final var evaluated = attributeSelector.evaluate(e, NODESET);
-                        final var configs = stream(NodeList.class.cast(evaluated))
-                                .map(it -> {
-                                    final var nodeAttributes = it.getAttributes();
-                                    final var name = nodeAttributes
-                                            .getNamedItem("name")
-                                            .getNodeValue();
-                                    try {
-                                        var description = sanitizer.matcher(asText(descriptionSelector.evaluate(it, NODESET))).replaceAll(" ");
-                                        if (!description.endsWith(".") && !description.isBlank()) {
-                                            description += ".";
-                                        }
-                                        final var type = findType(name, description);
-                                        return new Attribute(
-                                                name,
-                                                description,
-                                                Boolean.parseBoolean(nodeAttributes
-                                                        .getNamedItem("required")
-                                                        .getNodeValue()),
-                                                type,
-                                                findDefault(description)
-                                                        .orElseGet(() -> "boolean".equals(type) ? "false" : null),
-                                                findAllowedValues(description));
-                                    } catch (final XPathExpressionException ex) {
-                                        throw new IllegalStateException(ex);
-                                    }
-                                })
-                                .sorted(comparing(a -> a.name.toLowerCase(ROOT)))
-                                .collect(toList());
-                        return new Section(
-                                e.getAttributes().getNamedItem("name").getNodeValue(),
-                                asText(descriptionSelector.evaluate(e, NODESET)),
-                                configs);
-                    } catch (final XPathExpressionException ex) {
-                        throw new IllegalStateException(ex);
-                    }
-                })
+                .map(e -> toSection(attributeSelector, descriptionSelector, descriptionSelector, sanitizer, e))
                 .collect(toList());
-    }
-
-    public static void main(String[] args) {
-        new TomcatConnectorAttributesExtractor(Map.of(
-                "github", "https://raw.githubusercontent.com/apache/tomcat/10.0.21/webapps/docs/config/http.xml"
-        )).run();
     }
 
     private String findType(final String name, final String description) {
@@ -200,7 +220,9 @@ public class TomcatConnectorAttributesExtractor implements Runnable {
                 "secure".equals(name) ||
                 "tcpNoDelay".equals(name) ||
                 description.contains(" boolean ") ||
-                description.contains("(bool)")) {
+                description.contains("(bool)") ||
+                description.contains("If set to true") ||
+                description.startsWith("Flag to ")) {
             return "boolean";
         }
         if ("port".equals(name) ||
@@ -247,8 +269,21 @@ public class TomcatConnectorAttributesExtractor implements Runnable {
     }
 
     private Optional<String> findDefault(final String description) {
-        if (description.contains("The default value is an empty String")) {
+        if (description.contains("The default value is an empty String") || description.contains("the default value is \"\"")) {
             return Optional.of("");
+        }
+
+        final int mustBeSetIndex = description.indexOf("This MUST be set to ");
+        if (mustBeSetIndex > 0) {
+            final int end = description.lastIndexOf('.');
+            if (end > mustBeSetIndex) {
+                final var value = description.substring(mustBeSetIndex + "This MUST be set to ".length(), end).strip();
+                final int sep = value.indexOf(' ');
+                if (sep > 0) {
+                    return Optional.of(value.substring(0, sep).strip());
+                }
+                return Optional.of(value);
+            }
         }
 
         // reference to another parameter
@@ -256,7 +291,9 @@ public class TomcatConnectorAttributesExtractor implements Runnable {
                 .or(() -> extract(description, "this attribute is set to the value of the ", " attribute.", false))
                 .map(it -> "ref:" + it)
                 // direct value
+                .or(() -> extract(description, "The default value is .", ".", false))
                 .or(() -> extract(description, " For Linux the default is ", ".", false))
+                .or(() -> extract(description, "the default value is \"", "\"", false))
                 .or(() -> extract(description, " default value of ", " ", true))
                 .or(() -> extract(description, " default of ", " ", true))
                 .or(() -> extract(description, /*t*/ "he default value is ", " ", true))
@@ -313,7 +350,7 @@ public class TomcatConnectorAttributesExtractor implements Runnable {
         return Optional.empty();
     }
 
-    private Document parseDoc(final byte[] xml) throws ParserConfigurationException, IOException, SAXException {
+    private Document parseConnector(final byte[] xml) throws ParserConfigurationException, IOException, SAXException {
         final var builderFactory = DocumentBuilderFactory.newInstance();
         builderFactory.setValidating(false);
         builderFactory.setNamespaceAware(true);
@@ -328,7 +365,13 @@ public class TomcatConnectorAttributesExtractor implements Runnable {
         return parser.parse(inputSource);
     }
 
-    private HttpResponse<byte[]> fetchDoc(final String url) throws IOException, InterruptedException {
+    private byte[] fetchDoc(final String url) throws IOException, InterruptedException {
+        final var cache = Path.of(configuration.get("cache")).resolve(url.substring(url.lastIndexOf('/') + 1));
+        if (Files.exists(cache)) {
+            logger.info(() -> "Using cache '" + cache + "'");
+            return Files.readAllBytes(cache);
+        }
+
         final var xml = HttpClient.newHttpClient().send(
                 HttpRequest.newBuilder()
                         .GET()
@@ -341,7 +384,11 @@ public class TomcatConnectorAttributesExtractor implements Runnable {
             throw new IllegalStateException("Invalid documentation fetch: HTTP " + xml.statusCode());
         }
         logger.info(() -> "Got '" + url + "', will parse it now");
-        return xml;
+        if (!Files.exists(cache.getParent())) {
+            Files.createDirectories(cache.getParent());
+        }
+        Files.write(cache, xml.body());
+        return xml.body();
     }
 
     private String getDocUrl() {
@@ -370,11 +417,15 @@ public class TomcatConnectorAttributesExtractor implements Runnable {
 
     public static final class Sections {
         public final String tomcatVersion;
-        public final List<Section> sections;
+        public final List<Section> connectors;
+        public final List<Section> valves;
 
-        private Sections(final String tomcatVersion, final List<Section> sections) {
+        private Sections(final String tomcatVersion,
+                         final List<Section> connectors,
+                         final List<Section> valves) {
             this.tomcatVersion = tomcatVersion;
-            this.sections = sections;
+            this.connectors = connectors;
+            this.valves = valves;
         }
     }
 
