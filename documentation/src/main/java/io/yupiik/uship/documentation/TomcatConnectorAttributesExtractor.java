@@ -137,6 +137,7 @@ public class TomcatConnectorAttributesExtractor implements Runnable {
         final var sanitizer = Pattern.compile("\n +");
         return stream(valves)
                 .map(e -> toSection(attributeSelector, descriptionSelector, introductionSelector, sanitizer, e))
+                .filter(s -> !"Introduction".equals(s.name) && !"Attributes".equals(s.name)) // easier way to skip nested blocks
                 .collect(toList());
     }
 
