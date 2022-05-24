@@ -28,7 +28,7 @@
   <name>UShip :: JSON-RPC :: Spring</name>
 
   <properties>
-    <spring-boot.version>2.6.6</spring-boot.version>
+    <spring-boot.version>2.7.0</spring-boot.version>
   </properties>
 
   <dependencies>
@@ -61,6 +61,12 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-web</artifactId>
       <version>${spring-boot.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency> <!-- forced to fix CVE during build scan -->
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-web</artifactId>
+      <version>5.3.20</version>
       <scope>provided</scope>
     </dependency>
 
