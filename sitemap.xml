@@ -1,51 +1,51 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
     <url>
-        <loc>//www.yupiik.io/uship/tomcat-connector-configurer.html</loc>
-        <lastmod>2022-05-20</lastmod>
-    </url>
-    <url>
         <loc>//www.yupiik.io/uship/getting-started.html</loc>
-        <lastmod>2022-05-20</lastmod>
+        <lastmod>2022-05-24</lastmod>
     </url>
     <url>
         <loc>//www.yupiik.io/uship/graalvm.html</loc>
-        <lastmod>2022-05-20</lastmod>
+        <lastmod>2022-05-24</lastmod>
     </url>
     <url>
         <loc>//www.yupiik.io/uship/http-client.html</loc>
-        <lastmod>2022-05-20</lastmod>
+        <lastmod>2022-05-24</lastmod>
     </url>
     <url>
         <loc>//www.yupiik.io/uship/http-server.html</loc>
-        <lastmod>2022-05-20</lastmod>
+        <lastmod>2022-05-24</lastmod>
     </url>
     <url>
         <loc>//www.yupiik.io/uship/jsonrpc-execution-plan.html</loc>
-        <lastmod>2022-05-20</lastmod>
+        <lastmod>2022-05-24</lastmod>
     </url>
     <url>
         <loc>//www.yupiik.io/uship/microprofile.html</loc>
-        <lastmod>2022-05-20</lastmod>
+        <lastmod>2022-05-24</lastmod>
     </url>
     <url>
         <loc>//www.yupiik.io/uship/quarkus.html</loc>
-        <lastmod>2022-05-20</lastmod>
+        <lastmod>2022-05-24</lastmod>
     </url>
     <url>
         <loc>//www.yupiik.io/uship/spring-boot.html</loc>
-        <lastmod>2022-05-20</lastmod>
+        <lastmod>2022-05-24</lastmod>
+    </url>
+    <url>
+        <loc>//www.yupiik.io/uship/tomcat-configurer.html</loc>
+        <lastmod>2022-05-24</lastmod>
     </url>
     <url>
         <loc>//www.yupiik.io/uship/packaging.html</loc>
-        <lastmod>2022-05-20</lastmod>
+        <lastmod>2022-05-24</lastmod>
     </url>
     <url>
         <loc>//www.yupiik.io/uship/testing.html</loc>
-        <lastmod>2022-05-20</lastmod>
+        <lastmod>2022-05-24</lastmod>
     </url>
     <url>
         <loc>//www.yupiik.io/uship/development-stack.html</loc>
-        <lastmod>2022-05-20</lastmod>
+        <lastmod>2022-05-24</lastmod>
     </url>
 </urlset>
