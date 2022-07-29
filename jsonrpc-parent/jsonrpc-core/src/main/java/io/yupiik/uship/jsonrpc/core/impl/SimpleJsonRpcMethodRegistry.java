@@ -207,7 +207,7 @@ public class SimpleJsonRpcMethodRegistry {
         final var info = doCreateOpenRpcInfo();
         final var components = new OpenRPC.Components(new TreeMap<>(), new TreeMap<>(), new TreeMap<>(), new TreeMap<>());
 
-        try (final var schemaProcessor = new SchemaProcessor(false, false, v -> jsonb.fromJson(v, Schema.class))) {
+        try (final var schemaProcessor = new SchemaProcessor(addClassAsTitleInSchema(), false, v -> jsonb.fromJson(v, Schema.class))) {
             final var componentsSchemaProcessorCache = new SchemaProcessor.InMemoryCache() {
                 @Override
                 public void onSchemaCreated(final Class<?> type, final Schema schema) {
@@ -228,6 +228,10 @@ public class SimpleJsonRpcMethodRegistry {
                     .collect(toList());
             return new OpenRPC("1.2.4", info, toServers(), methods, components);
         }
+    }
+
+    protected boolean addClassAsTitleInSchema() {
+        return false;
     }
 
     protected List<OpenRPC.Server> toServers() {

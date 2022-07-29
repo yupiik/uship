@@ -34,5 +34,6 @@
     <module>jsonrpc-client</module>
     <module>jsonrpc-spring</module>
     <module>jsonrpc-quarkus-parent</module>
+    <module>jsonrpc-cli</module>
   </modules>
 </project>
