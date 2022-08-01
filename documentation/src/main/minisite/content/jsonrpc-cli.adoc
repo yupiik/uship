@@ -10,9 +10,9 @@ To get started and have the right classpath, start by adding this dependency:
 [source,xml]
 ----
 <dependency>
-<groupId>io.yupiik.uship</groupId>
-<artifactId>jsonrpc-cli</artifactId>
-<version>${uship.version}</version>
+  <groupId>io.yupiik.uship</groupId>
+  <artifactId>jsonrpc-cli</artifactId>
+  <version>${uship.version}</version>
 </dependency>
 ----
 
