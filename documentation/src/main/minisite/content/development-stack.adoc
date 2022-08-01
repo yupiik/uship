@@ -38,19 +38,21 @@ Here is a `pom.xml` template you can use to get started:
     <dependency> <3>
       <groupId>io.yupiik.logging</groupId>
       <artifactId>yupiik-logging-jul</artifactId>
-      <version>1.0.2</version>
+      <version>1.0.5</version>
+      <classifier>jakarta</classifier>
+      <scope>runtime</scope>
     </dependency>
     <dependency> <4>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
-      <version>5.8.2</version>
+      <version>5.9.0</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
 
   <dependencyManagement>
     <dependencies>
-      <dependency> <6>
+      <dependency> <5>
         <groupId>io.yupiik.uship</groupId>
         <artifactId>bom</artifactId>
         <version>${uship.version}</version>
@@ -60,7 +62,7 @@ Here is a `pom.xml` template you can use to get started:
 
   <build>
     <plugins>
-      <plugin> <7>
+      <plugin> <6>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-resources-plugin</artifactId>
         <version>3.2.0</version>
@@ -68,7 +70,7 @@ Here is a `pom.xml` template you can use to get started:
           <encoding>UTF-8</encoding>
         </configuration>
       </plugin>
-      <plugin> <8>
+      <plugin> <7>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.8.1</version>
@@ -80,13 +82,13 @@ Here is a `pom.xml` template you can use to get started:
           <parameters>true</parameters>
         </configuration>
       </plugin>
-      <plugin> <9>
+      <plugin> <8>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>3.0.0-M5</version>
         <configuration>
-          <trimStackTrace>false</trimStackTrace> <10>
-          <systemPropertyVariables> <11>
+          <trimStackTrace>false</trimStackTrace> <9>
+          <systemPropertyVariables> <10>
             <java.util.logging.manager>io.yupiik.logging.jul.YupiikLogManager</java.util.logging.manager>
           </systemPropertyVariables>
         </configuration>
@@ -99,7 +101,6 @@ Here is a `pom.xml` template you can use to get started:
 <.> Define uship version as a variable for easier upgrades (not required),
 <.> We use Yupiik Logging to get a more cloud friendly logging but this is not required at all, skip this dependency if not desired (if you prefer Log4j2 or so use JUL binding for example),
 <.> We want to write tests with JUnit 5 so we set it as dependency,
-<.> JUnit 5.8.0-M1 got a pom bug so we force kotlin exclusion to workaround it,
 <.> We import the UShip bom to get dependencies versions right,
 <.> We force the encoding for resources to avoid surprises (OS dependent otherwise),
 <.> We force the compiler to use the Java version we want (note you can use any version >= 11),
