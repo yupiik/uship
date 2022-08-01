@@ -108,19 +108,21 @@ This part will use Maven to illustrate the process but it is easily adaptable to
     &lt;dependency&gt; <b class="conum">(3)</b>
       &lt;groupId&gt;io.yupiik.logging&lt;/groupId&gt;
       &lt;artifactId&gt;yupiik-logging-jul&lt;/artifactId&gt;
-      &lt;version&gt;1.0.2&lt;/version&gt;
+      &lt;version&gt;1.0.5&lt;/version&gt;
+      &lt;classifier&gt;jakarta&lt;/classifier&gt;
+      &lt;scope&gt;runtime&lt;/scope&gt;
     &lt;/dependency&gt;
     &lt;dependency&gt; <b class="conum">(4)</b>
       &lt;groupId&gt;org.junit.jupiter&lt;/groupId&gt;
       &lt;artifactId&gt;junit-jupiter&lt;/artifactId&gt;
-      &lt;version&gt;5.8.2&lt;/version&gt;
+      &lt;version&gt;5.9.0&lt;/version&gt;
       &lt;scope&gt;test&lt;/scope&gt;
     &lt;/dependency&gt;
   &lt;/dependencies&gt;
 
   &lt;dependencyManagement&gt;
     &lt;dependencies&gt;
-      &lt;dependency&gt; <b class="conum">(6)</b>
+      &lt;dependency&gt; <b class="conum">(5)</b>
         &lt;groupId&gt;io.yupiik.uship&lt;/groupId&gt;
         &lt;artifactId&gt;bom&lt;/artifactId&gt;
         &lt;version&gt;${uship.version}&lt;/version&gt;
@@ -130,7 +132,7 @@ This part will use Maven to illustrate the process but it is easily adaptable to
 
   &lt;build&gt;
     &lt;plugins&gt;
-      &lt;plugin&gt; <b class="conum">(7)</b>
+      &lt;plugin&gt; <b class="conum">(6)</b>
         &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
         &lt;artifactId&gt;maven-resources-plugin&lt;/artifactId&gt;
         &lt;version&gt;3.2.0&lt;/version&gt;
@@ -138,7 +140,7 @@ This part will use Maven to illustrate the process but it is easily adaptable to
           &lt;encoding&gt;UTF-8&lt;/encoding&gt;
         &lt;/configuration&gt;
       &lt;/plugin&gt;
-      &lt;plugin&gt; <b class="conum">(8)</b>
+      &lt;plugin&gt; <b class="conum">(7)</b>
         &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
         &lt;artifactId&gt;maven-compiler-plugin&lt;/artifactId&gt;
         &lt;version&gt;3.8.1&lt;/version&gt;
@@ -150,13 +152,13 @@ This part will use Maven to illustrate the process but it is easily adaptable to
           &lt;parameters&gt;true&lt;/parameters&gt;
         &lt;/configuration&gt;
       &lt;/plugin&gt;
-      &lt;plugin&gt; <b class="conum">(9)</b>
+      &lt;plugin&gt; <b class="conum">(8)</b>
         &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
         &lt;artifactId&gt;maven-surefire-plugin&lt;/artifactId&gt;
         &lt;version&gt;3.0.0-M5&lt;/version&gt;
         &lt;configuration&gt;
-          &lt;trimStackTrace&gt;false&lt;/trimStackTrace&gt; <b class="conum">(10)</b>
-          &lt;systemPropertyVariables&gt; <b class="conum">(11)</b>
+          &lt;trimStackTrace&gt;false&lt;/trimStackTrace&gt; <b class="conum">(9)</b>
+          &lt;systemPropertyVariables&gt; <b class="conum">(10)</b>
             &lt;java.util.logging.manager&gt;io.yupiik.logging.jul.YupiikLogManager&lt;/java.util.logging.manager&gt;
           &lt;/systemPropertyVariables&gt;
         &lt;/configuration&gt;
@@ -179,9 +181,6 @@ This part will use Maven to illustrate the process but it is easily adaptable to
 </li>
 <li>
 <p>We want to write tests with JUnit 5 so we set it as dependency,</p>
-</li>
-<li>
-<p>JUnit 5.8.0-M1 got a pom bug so we force kotlin exclusion to workaround it,</p>
 </li>
 <li>
 <p>We import the UShip bom to get dependencies versions right,</p>
