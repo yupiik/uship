@@ -35,6 +35,13 @@ public class SampleCommand {
         return first + "," + second + "," + third + "," + fourth + "," + fifth + "," + sixth;
     }
 
+    @JsonRpcMethod(name = "obj")
+    public Foo obj(@JsonRpcParam final String name) {
+        final var foo = new Foo();
+        foo.name = name;
+        return foo;
+    }
+
     public static class Foo {
         public String name;
 

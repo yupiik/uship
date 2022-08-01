@@ -32,6 +32,10 @@ class JsonRpcCliExecutorTest {
         assertHelp(stderr);
     }
 
+    @CliTest(command = {"obj", "--name", "test"}, stdout = "\n  name: test\n")
+    void obj(@StdErr final CliSupport.ResettableStream stderr) {
+    }
+
     @CliTest(command = {}, stderr = CliTest.IGNORE_STREAM)
     void noCommand(@StdErr final CliSupport.ResettableStream stderr) {
         assertHelp(stderr);
