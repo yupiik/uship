@@ -91,6 +91,8 @@ xref:microprofile.adoc[Read more.]
 It flattenize the objects/lists/maps in a property style to enable to pass any option to the CLI.
 This way you can reuse your "commands" from the command line or backend.
 
+xref:jsonrpc-cli.adoc[Read more.]
+
 == Go further with GraalVM
 
 You can also make your JSON-RPC (or web) server "native" thanks GraalVM.

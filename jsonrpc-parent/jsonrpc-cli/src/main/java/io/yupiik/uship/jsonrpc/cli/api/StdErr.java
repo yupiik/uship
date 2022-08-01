@@ -15,7 +15,6 @@
  */
 package io.yupiik.uship.jsonrpc.cli.api;
 
-import jakarta.enterprise.util.AnnotationLiteral;
 import jakarta.inject.Qualifier;
 
 import java.lang.annotation.Retention;
@@ -30,7 +29,4 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Target({PARAMETER, METHOD, FIELD})
 @Retention(RUNTIME)
 public @interface StdErr {
-    class Literal extends AnnotationLiteral<StdErr> implements StdErr {
-        public static final Literal INSTANCE = new Literal();
-    }
 }

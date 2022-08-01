@@ -1,0 +1,96 @@
+= JSON-RPC CLI
+
+[abstract]
+JSON-RPC CLI module enables you to write a command line application re-using JSON-RPC programming model.
+
+== Dependency
+
+To get started and have the right classpath, start by adding this dependency:
+
+[source,xml]
+----
+<dependency>
+<groupId>io.yupiik.uship</groupId>
+<artifactId>jsonrpc-cli</artifactId>
+<version>${uship.version}</version>
+</dependency>
+----
+
+== Write a command
+
+To write an user command, just write a JSON-RPC endpoint as usual:
+
+[source,java]
+----
+@JsonRpc
+@ApplicationScoped
+public class SampleCommand {
+    @JsonRpcMethod(name = "my-command")
+    public MyResponse command(@JsonRpcParam("first") final MyRequest request) {
+        return ....;
+    }
+}
+----
+
+IMPORTANT: as it uses µship CDI integration, don't forget a `META-INF/beans.xml` in your resources (it can be empty) to enable the module scanning.
+
+== Launch the CLI
+
+You can use any `main` and handle the command execution with `io.yupiik.uship.jsonrpc.cli.api.JsonRpcCliExecutor` to execute the command once the arguments parsed.
+
+However, `io.yupiik.uship.jsonrpc.cli.main.JsonRpcCli` provides a default `main` with these features:
+
+* Script handling using `-f` (or `--file`): each line not starting with a `#` or being empty will be parsed and executed as a command,
+* Container log lines are hidden until their level is severe enough (INFO are skipped) making it more CLI friendly,
+* CDI container uses default discovery (scanning).
+
+Usage:
+
+[source,bash]
+----
+java \
+  -cp $classpath \
+  io.yupiik.uship.jsonrpc.cli.main.JsonRpcCli \
+  $command \
+  $parameters
+----
+
+== Parameters
+
+The parameters of the command are passed using the form `$name $value`. It means that you must always have pairs of arguments (`a b c` will fail because it missed a fourth parameter).
+
+The parameters are bound as a JSON-RPC request using the parameter type as indicator, if a primitive the value is directly used, if a class or list it is handled using a properties syntax, etc...
+
+=== Properties syntax
+
+The properties syntax uses a flattenized form of objects/simple lists:
+
+[source,java]
+----
+public class Nested {
+    private String name;
+    private List<String> list;
+}
+public class Root {
+    private Nested nested;
+}
+----
+
+To configure this model, for example, you will use these properties - assuming the parameter of type `Root` is passed to the JSON-RPC method and named `root`:
+
+[source,properties]
+----
+root.nested.name = xxx
+root.nested.list.0 = yyy
+root.nested.list.1 = zzz
+----
+
+TIP: for list of objects `$list.$index.$nestedAttribute` format is used.
+
+From the command line, `.` can be replaced by `-` to make it CLI friendly (previous example would look like: `--root-nested-name MyName` for example).
+
+== Streams injections
+
+`stdout` and `stderr` can be injected in commands using `@StdOut @Inject PrintStream stdout;` or `@StdErr @Inject PrintStream stderr;`.
+
+It is often needed when you want to output data using streaming instead of passing the data to the result of the command.
