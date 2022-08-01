@@ -96,6 +96,12 @@ class JsonRpcCliExecutorTest {
                 "    --command (String): Filter the documentation for a single command.\n" +
                 "    --format (HelpFormat): Output format (TEXT, ADOC)\n" +
                 "\n" +
+                "  obj:\n" +
+                "\n" +
+                "    \n" +
+                "\n" +
+                "    --name (String): \n" +
+                "\n" +
                 "  openrpc:\n" +
                 "\n" +
                 "    Returns the Open-RPC specification.\n" +
