@@ -32,7 +32,6 @@ import java.util.Set;
 
 import static java.util.stream.Collectors.toList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class EntityImplTest {
     @Test
