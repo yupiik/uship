@@ -4,6 +4,7 @@
   "description": "Lightweight microservice stack for modern applications.",
   "website": "https://www.yupiik.io/uship",
   "logo": "https://www.yupiik.com/img/logo.png",
+  "group": "Yupiik Stack",
   "categories": [
     "java",
     "microservice",
