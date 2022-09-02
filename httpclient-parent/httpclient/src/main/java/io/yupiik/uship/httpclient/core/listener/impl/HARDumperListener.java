@@ -30,6 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.Base64;
@@ -61,10 +62,31 @@ public class HARDumperListener implements RequestListener<HARDumperListener.Data
     private final Logger logger;
     private final Har har = new Har();
 
+    private boolean withStartedDateTime = true;
+    private boolean withTime = true;
+
     public HARDumperListener(final Path output, final Clock clock, final Logger logger) {
         this.output = output;
         this.clock = clock;
         this.logger = logger;
+    }
+
+    public boolean isWithStartedDateTime() {
+        return withStartedDateTime;
+    }
+
+    public HARDumperListener setWithStartedDateTime(boolean withStartedDateTime) {
+        this.withStartedDateTime = withStartedDateTime;
+        return this;
+    }
+
+    public boolean isWithTime() {
+        return withTime;
+    }
+
+    public HARDumperListener setWithTime(boolean withTime) {
+        this.withTime = withTime;
+        return this;
     }
 
     @Override
@@ -90,6 +112,10 @@ public class HARDumperListener implements RequestListener<HARDumperListener.Data
         final var entry = new Har.Entry();
         entry.request = toRequest(request, state.requestPayload);
         entry.response = toResponse(response);
+        if (withStartedDateTime)
+            entry.startedDateTime = state.instant.atZone(clock.getZone());
+        if (withTime)
+            entry.time = Duration.between(state.instant, clock.instant()).toMillis();
 
         if (har.log.entries == null) {
             synchronized (har) {

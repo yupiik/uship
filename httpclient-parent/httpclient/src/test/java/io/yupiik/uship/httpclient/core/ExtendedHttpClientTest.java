@@ -150,14 +150,18 @@ class ExtendedHttpClientTest {
                         "          \"status\":200,\n" +
                         "          \"statusText\":\"OK\"\n" +
                         "        },\n" +
-                        "        \"time\":0\n" +
+                        "        \"startedDateTime\":\"<startedDateTime>\",\n" +
+                        "        \"time\":<time>\n" +
                         "      }\n" +
                         "    ],\n" +
                         "    \"version\":\"1.2\"\n" +
                         "  }\n" +
                         "}"),
                 Files.readString(output)
-                        .replaceAll("\\p{Alpha}+, \\p{Digit}+ \\p{Alpha}+ \\p{Digit}{4} \\p{Digit}{2}:\\p{Digit}{2}:\\p{Digit}{2} \\p{Alpha}+", "<date>"));
+                        .replaceAll("\\p{Alpha}+, \\p{Digit}+ \\p{Alpha}+ \\p{Digit}{4} \\p{Digit}{2}:\\p{Digit}{2}:\\p{Digit}{2} \\p{Alpha}+", "<date>")
+                        .replaceAll("\"startedDateTime\":.*,", "\"startedDateTime\":\"<startedDateTime>\",")
+                        .replaceAll("\"time\":.*", "\"time\":<time>")
+        );
     }
 
     private ExtendedHttpClient newClient(final RequestListener<?>... listeners) {
