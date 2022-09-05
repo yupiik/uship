@@ -17,39 +17,29 @@ package io.yupiik.uship.httpclient.core;
 
 import io.yupiik.uship.httpclient.core.listener.RequestListener;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLParameters;
 import java.io.IOException;
-import java.net.Authenticator;
-import java.net.CookieHandler;
-import java.net.ProxySelector;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.net.http.WebSocket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 import static java.util.Optional.ofNullable;
 
-public class ExtendedHttpClient extends HttpClient implements AutoCloseable {
-    private final HttpClient delegate;
+public class ExtendedHttpClient extends DelegatingHttpClient implements AutoCloseable {
     private final AtomicLong requestCounter;
     private final List<RequestListener<?>> listeners = new ArrayList<>();
     private final List<Consumer<ExtendedHttpClient>> onClose = new ArrayList<>();
     private final boolean isChild;
 
     public ExtendedHttpClient(final ExtendedHttpClientConfiguration clientConfiguration) {
-        this.delegate = ofNullable(clientConfiguration.getDelegate()).orElseGet(HttpClient::newHttpClient);
+        super(ofNullable(clientConfiguration.getDelegate()).orElseGet(HttpClient::newHttpClient));
         this.isChild = false;
         this.requestCounter = new AtomicLong();
         if (clientConfiguration.getRequestListeners() != null) {
@@ -58,7 +48,7 @@ public class ExtendedHttpClient extends HttpClient implements AutoCloseable {
     }
 
     public ExtendedHttpClient(final ExtendedHttpClient extendedHttpClient) {
-        this.delegate = extendedHttpClient.delegate;
+        super(extendedHttpClient.delegate);
         this.isChild = true;
         this.requestCounter = extendedHttpClient.requestCounter;
         this.listeners.addAll(extendedHttpClient.listeners);
@@ -146,7 +136,7 @@ public class ExtendedHttpClient extends HttpClient implements AutoCloseable {
         final var prepare = prepare(request);
         final var state = prepare.state().iterator();
         try {
-            final var res = delegate.send(prepare.request(), responseBodyHandler);
+            final var res = super.send(prepare.request(), responseBodyHandler);
             after(state, request, null, res);
             return res;
         } catch (final RuntimeException | IOException re) {
@@ -158,7 +148,7 @@ public class ExtendedHttpClient extends HttpClient implements AutoCloseable {
     @Override
     public <T> CompletableFuture<HttpResponse<T>> sendAsync(final HttpRequest request, final HttpResponse.BodyHandler<T> responseBodyHandler) {
         final var prepare = prepare(request);
-        return delegate.sendAsync(prepare.request(), responseBodyHandler)
+        return super.sendAsync(prepare.request(), responseBodyHandler)
                 .whenComplete((ok, ko) -> after(prepare.state().iterator(), request, ko, ok));
     }
 
@@ -166,57 +156,7 @@ public class ExtendedHttpClient extends HttpClient implements AutoCloseable {
     public <T> CompletableFuture<HttpResponse<T>> sendAsync(final HttpRequest request, final HttpResponse.BodyHandler<T> responseBodyHandler,
                                                             final HttpResponse.PushPromiseHandler<T> pushPromiseHandler) {
         final var prepare = prepare(request);
-        return delegate.sendAsync(prepare.request(), responseBodyHandler, pushPromiseHandler)
+        return super.sendAsync(prepare.request(), responseBodyHandler, pushPromiseHandler)
                 .whenComplete((ok, ko) -> after(prepare.state().iterator(), request, ko, ok));
-    }
-
-    @Override
-    public Optional<CookieHandler> cookieHandler() {
-        return delegate.cookieHandler();
-    }
-
-    @Override
-    public Optional<Duration> connectTimeout() {
-        return delegate.connectTimeout();
-    }
-
-    @Override
-    public Redirect followRedirects() {
-        return delegate.followRedirects();
-    }
-
-    @Override
-    public Optional<ProxySelector> proxy() {
-        return delegate.proxy();
-    }
-
-    @Override
-    public SSLContext sslContext() {
-        return delegate.sslContext();
-    }
-
-    @Override
-    public SSLParameters sslParameters() {
-        return delegate.sslParameters();
-    }
-
-    @Override
-    public Optional<Authenticator> authenticator() {
-        return delegate.authenticator();
-    }
-
-    @Override
-    public Version version() {
-        return delegate.version();
-    }
-
-    @Override
-    public Optional<Executor> executor() {
-        return delegate.executor();
-    }
-
-    @Override
-    public WebSocket.Builder newWebSocketBuilder() {
-        return delegate.newWebSocketBuilder();
     }
 }

@@ -15,17 +15,11 @@
  */
 package io.yupiik.uship.httpclient.core.listener.impl;
 
-import jakarta.json.bind.Jsonb;
-import jakarta.json.bind.JsonbBuilder;
-import jakarta.json.bind.JsonbConfig;
-
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Logger;
-
-import static jakarta.json.bind.config.PropertyOrderStrategy.LEXICOGRAPHICAL;
 
 /**
  * Usage:
