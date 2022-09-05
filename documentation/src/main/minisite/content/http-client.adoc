@@ -42,7 +42,12 @@ TIP: for `ignoredPaths` you can use the syntax `regex:<java regex>` to match mor
 This listener enables to capture a `HAR` dump of all exchanges which went through the client.
 It can be very useful to generate some test data you replay with a HAR server in a test or a demo environment.
 
+It comes with its companion `HARHttpClient` which enables to replay a HAR without actually doing the requests.
+
 TIP: a sibling listener called `NDJSONDumperListener` exists and allows to log each entry in a ND-JSON output (better in case of error but not standard).
+It can be combined to `NDJSONHttpClient` to replay captured requests (in order).
+
+IMPORTANT: the `HttpClient` companions of these "capture" listeners must be used in sequential order (until you know you can parallelize them all) because there is no matching logic as of today of requests/responses to enable a wider reuse of captures.
 
 === Sample usage
 

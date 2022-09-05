@@ -30,7 +30,9 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
-public class DelegatingHttpClient extends HttpClient {
+import static java.util.concurrent.CompletableFuture.completedFuture;
+
+public class DelegatingHttpClient extends HttpClient implements AutoCloseable {
     protected final HttpClient delegate;
 
     public DelegatingHttpClient(final HttpClient delegate) {
@@ -101,5 +103,42 @@ public class DelegatingHttpClient extends HttpClient {
     @Override
     public WebSocket.Builder newWebSocketBuilder() {
         return delegate.newWebSocketBuilder();
+    }
+
+    @Override
+    public void close() throws Exception {
+        if (AutoCloseable.class.isInstance(delegate)) {
+            AutoCloseable.class.cast(delegate).close();
+        }
+    }
+
+    /**
+     * Simple delegating http client which implements {@link HttpClient#sendAsync(HttpRequest, HttpResponse.BodyHandler)}
+     * using the synchronous implementation.
+     */
+    public static class Synchronous extends DelegatingHttpClient {
+        public Synchronous(final HttpClient delegate) {
+            super(delegate);
+        }
+
+        @Override
+        public <T> CompletableFuture<HttpResponse<T>> sendAsync(final HttpRequest request, final HttpResponse.BodyHandler<T> handler) {
+            try {
+                return completedFuture(send(request, handler));
+            } catch (final RuntimeException | IOException re) {
+                final var future = new CompletableFuture<HttpResponse<T>>();
+                future.completeExceptionally(re);
+                return future;
+            } catch (final InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(ie);
+            }
+        }
+
+        @Override
+        public <T> CompletableFuture<HttpResponse<T>> sendAsync(final HttpRequest request, final HttpResponse.BodyHandler<T> handler,
+                                                                final HttpResponse.PushPromiseHandler<T> pushPromiseHandler) {
+            return sendAsync(request, handler);
+        }
     }
 }
