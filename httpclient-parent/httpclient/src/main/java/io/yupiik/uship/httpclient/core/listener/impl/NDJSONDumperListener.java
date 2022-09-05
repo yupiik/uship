@@ -79,7 +79,7 @@ public class NDJSONDumperListener extends BaseHARDumperListener implements AutoC
     public static class Configuration extends BaseConfiguration {
         private boolean flushOnEachEntry = true;
 
-        protected Configuration(final Path output, final Clock clock, final Logger logger) {
+        public Configuration(final Path output, final Clock clock, final Logger logger) {
             super(output, clock, logger);
         }
 
