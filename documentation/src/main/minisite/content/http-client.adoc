@@ -30,6 +30,13 @@ It defaults to chrome one.
 
 This listener enables to force all exchanges to be logged.
 
+==== `FilteringListener`
+
+This listener wraps another listener to filter the calls to `before`/`after` callbacks either based on the request or on the response.
+Can be useful to ignore some data (for example to only capture errors in `HARDumperListener`).
+
+TIP: for `ignoredPaths` you can use the syntax `regex:<java regex>` to match more than an exact path at once.
+
 ==== `HARDumperListener`
 
 This listener enables to capture a `HAR` dump of all exchanges which went through the client.
