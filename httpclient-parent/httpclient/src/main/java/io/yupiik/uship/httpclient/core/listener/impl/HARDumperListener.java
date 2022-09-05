@@ -37,6 +37,10 @@ public class HARDumperListener extends BaseHARDumperListener implements AutoClos
         super(new BaseConfiguration(output, clock, logger));
     }
 
+    public HARDumperListener(final Configuration configuration) {
+        super(configuration);
+    }
+
     @Override
     protected boolean isJsonFormatted() {
         return true;
@@ -78,5 +82,11 @@ public class HARDumperListener extends BaseHARDumperListener implements AutoClos
     }
 
     public static class Har extends BaseHARDumperListener.Har { // backward compat
+    }
+
+    public static class Configuration extends BaseConfiguration {
+        public Configuration(final Path output, final Clock clock, final Logger logger) {
+            super(output, clock, logger);
+        }
     }
 }

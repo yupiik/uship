@@ -19,11 +19,9 @@ import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import io.yupiik.uship.httpclient.core.listener.RequestListener;
 import io.yupiik.uship.httpclient.core.listener.impl.DefaultTimeout;
-import io.yupiik.uship.httpclient.core.listener.impl.HARDumperListener;
 import io.yupiik.uship.httpclient.core.listener.impl.SetUserAgent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -31,17 +29,12 @@ import java.net.URI;
 import java.net.http.HttpRequest;
 import java.net.http.HttpTimeoutException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
-import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS;
 
 @TestInstance(PER_CLASS)
@@ -93,71 +86,6 @@ class ExtendedHttpClientTest {
                 final var http = newClient(new SetUserAgent("test/1.0"))) {
             assertEquals(200, http.send(server.GET().build()).statusCode());
         }
-    }
-
-    @Test
-    void har(@TempDir final Path work) throws IOException {
-        final var output = work.resolve("dump.har");
-        final String serverBase;
-        try (
-                final var server = new Server(ex -> {
-                    final var body = "{\"ok\":true}".getBytes(StandardCharsets.UTF_8);
-                    ex.sendResponseHeaders(200, body.length);
-                    ex.getResponseBody().write(body);
-                    ex.close();
-                });
-                final var http = newClient(new HARDumperListener(output, Clock.systemUTC(), Logger.getLogger(getClass().getName())))) {
-            http.send(server.GET().build());
-            serverBase = server.base().toASCIIString();
-        }
-        assertTrue(Files.exists(output));
-        assertEquals(("" +
-                        "{\n" +
-                        "  \"log\":{\n" +
-                        "    \"comment\":\"\",\n" +
-                        "    \"entries\":[\n" +
-                        "      {\n" +
-                        "        \"request\":{\n" +
-                        "          \"bodySize\":-1,\n" +
-                        "          \"comment\":\"\",\n" +
-                        "          \"headerSize\":0,\n" +
-                        "          \"headers\":[\n" +
-                        "          ],\n" +
-                        "          \"httpVersion\":\"HTTP/1.1\",\n" +
-                        "          \"method\":\"GET\",\n" +
-                        "          \"url\":\"" + serverBase + "\"\n" +
-                        "        },\n" +
-                        "        \"response\":{\n" +
-                        "          \"bodySize\":11,\n" +
-                        "          \"comment\":\"\",\n" +
-                        "          \"content\":{\n" +
-                        "            \"compression\":0,\n" +
-                        "            \"size\":11,\n" +
-                        "            \"text\":\"{\\\"ok\\\":true}\"\n" +
-                        "          },\n" +
-                        "          \"headers\":[\n" +
-                        "            {\n" +
-                        "              \"name\":\"content-length\",\n" +
-                        "              \"value\":\"11\"\n" +
-                        "            },\n" +
-                        "            {\n" +
-                        "              \"name\":\"date\",\n" +
-                        "              \"value\":\"<date>\"\n" +
-                        "            }\n" +
-                        "          ],\n" +
-                        "          \"headersSize\":57,\n" +
-                        "          \"httpVersion\":\"HTTP/1.1\",\n" +
-                        "          \"status\":200,\n" +
-                        "          \"statusText\":\"OK\"\n" +
-                        "        },\n" +
-                        "        \"time\":0\n" +
-                        "      }\n" +
-                        "    ],\n" +
-                        "    \"version\":\"1.2\"\n" +
-                        "  }\n" +
-                        "}"),
-                Files.readString(output)
-                        .replaceAll("\\p{Alpha}+, \\p{Digit}+ \\p{Alpha}+ \\p{Digit}{4} \\p{Digit}{2}:\\p{Digit}{2}:\\p{Digit}{2} \\p{Alpha}+", "<date>"));
     }
 
     private ExtendedHttpClient newClient(final RequestListener<?>... listeners) {

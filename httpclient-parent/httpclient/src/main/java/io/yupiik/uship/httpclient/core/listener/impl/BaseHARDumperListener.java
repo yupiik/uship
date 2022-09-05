@@ -31,6 +31,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.Base64;
@@ -87,6 +88,12 @@ public abstract class BaseHARDumperListener implements RequestListener<BaseHARDu
         final var entry = new Har.Entry();
         entry.request = toRequest(request, state.requestPayload);
         entry.response = toResponse(response);
+        if (configuration.enableStartedDateTime) {
+            entry.startedDateTime = state.instant.atZone(configuration.clock.getZone());
+        }
+        if (configuration.enableTime) {
+            entry.time = Duration.between(state.instant, configuration.clock.instant()).toMillis();
+        }
         onEntry(entry);
     }
 
@@ -450,10 +457,31 @@ public abstract class BaseHARDumperListener implements RequestListener<BaseHARDu
         protected final Clock clock;
         protected final Logger logger;
 
+        private boolean enableStartedDateTime = true;
+        private boolean enableTime = true;
+
         protected BaseConfiguration(final Path output, final Clock clock, final Logger logger) {
             this.output = output;
             this.clock = clock;
             this.logger = logger;
+        }
+
+        public boolean isEnableStartedDateTime() {
+            return enableStartedDateTime;
+        }
+
+        public <T extends BaseConfiguration> T setEnableStartedDateTime(boolean enableStartedDateTime) {
+            this.enableStartedDateTime = enableStartedDateTime;
+            return (T) this;
+        }
+
+        public boolean isEnableTime() {
+            return enableTime;
+        }
+
+        public <T extends BaseConfiguration> T  setEnableTime(boolean enableTime) {
+            this.enableTime = enableTime;
+            return (T) this;
         }
     }
 }
