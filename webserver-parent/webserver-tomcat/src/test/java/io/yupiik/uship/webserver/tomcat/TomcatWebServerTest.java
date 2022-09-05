@@ -28,6 +28,7 @@ import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.Set;
 
+import static java.lang.Thread.sleep;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -79,7 +80,24 @@ class TomcatWebServerTest {
         final var threadsBefore = listThreads();
         final var server = new TomcatWebServer(configuration);
         assertThrows(IllegalStateException.class, server::create);
-        assertEquals(Set.of(threadsBefore), Set.of(listThreads()));
+
+        final var maxRetries = 3;
+        for (int i = 0; i < maxRetries; i++) { // support a small retry for the CI
+            try {
+                assertEquals(Set.of(threadsBefore), Set.of(listThreads()));
+                break;
+            } catch (final AssertionError ae) {
+                if (i + 1 == maxRetries) {
+                    throw ae;
+                }
+                try {
+                    sleep(100);
+                } catch (final InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException(e);
+                }
+            }
+        }
     }
 
     private Thread[] listThreads() {
