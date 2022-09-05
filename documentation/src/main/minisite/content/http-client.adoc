@@ -42,6 +42,8 @@ TIP: for `ignoredPaths` you can use the syntax `regex:<java regex>` to match mor
 This listener enables to capture a `HAR` dump of all exchanges which went through the client.
 It can be very useful to generate some test data you replay with a HAR server in a test or a demo environment.
 
+TIP: a sibling listener called `NDJSONDumperListener` exists and allows to log each entry in a ND-JSON output (better in case of error but not standard).
+
 === Sample usage
 
 [source,java]

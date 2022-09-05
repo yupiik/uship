@@ -25,7 +25,7 @@ import java.util.regex.Pattern;
 
 import static java.util.stream.Collectors.toList;
 
-public class FilteringListener<A> implements RequestListener<FilteringListener.State<A>> {
+public class FilteringListener<A> implements RequestListener<FilteringListener.State<A>>, AutoCloseable {
     private final State<A> skippedState = new State<>(null, true);
 
     private final Configuration<A> configuration;
@@ -61,6 +61,13 @@ public class FilteringListener<A> implements RequestListener<FilteringListener.S
     public void after(final State<A> state, final HttpRequest request, final Throwable error, final HttpResponse<?> response) {
         if (!state.skip && !isSkipped(error, response)) {
             configuration.delegate.after(state.value.state(), state.value.request(), error, response);
+        }
+    }
+
+    @Override
+    public void close() throws Exception {
+        if (AutoCloseable.class.isInstance(configuration.delegate)) {
+            AutoCloseable.class.cast(configuration.delegate).close();
         }
     }
 
