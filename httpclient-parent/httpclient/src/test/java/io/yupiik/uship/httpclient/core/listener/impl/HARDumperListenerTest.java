@@ -35,6 +35,7 @@ import java.util.Optional;
 import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class HARDumperListenerTest {
 
@@ -92,8 +93,61 @@ class HARDumperListenerTest {
 
         assertEquals(expected, Files.readString(output));
     }
+    @Test
+    void harJsonTimeDisable(@TempDir final Path temp) throws Exception {
+        final var output = temp.resolve("harJsonTimeDisable.json");
+        final String expected = "{\n" + "  \"log\":{\n" + "    \"comment\":\"\",\n"
+            + "    \"entries\":[\n" + "      {\n" + "        \"request\":{\n"
+            + "          \"bodySize\":-1,\n" + "          \"comment\":\"\",\n"
+            + "          \"headerSize\":0,\n" + "          \"headers\":[\n" + "          ],\n"
+            + "          \"httpVersion\":\"HTTP/1.1\",\n" + "          \"method\":\"GET\",\n"
+            + "          \"url\":\"http://localhost:1234/test1\"\n" + "        },\n"
+            + "        \"response\":{\n" + "          \"bodySize\":0,\n"
+            + "          \"comment\":\"\",\n" + "          \"content\":{\n"
+            + "            \"compression\":0,\n" + "            \"size\":0\n" + "          },\n"
+            + "          \"headers\":[\n" + "          ],\n" + "          \"headersSize\":0,\n"
+            + "          \"httpVersion\":\"HTTP/1.1\",\n" + "          \"status\":200,\n"
+            + "          \"statusText\":\"OK\"\n" + "        },\n"
+            + "        \"time\":0\n"
+            + "      }\n" + "    ],\n" + "    \"version\":\"1.2\"\n" + "  }\n" + "}";
 
-    //TODO move to test module?
+        var clock = new Clock() {
+            private Instant instant = Instant.EPOCH;
+            @Override
+            public ZoneId getZone() {
+                return ZoneId.of("UTC");
+            }
+
+            @Override
+            public Clock withZone(ZoneId zone) {
+                return this;
+            }
+
+            @Override
+            public Instant instant() {
+                return instant;
+            }
+
+            public void plusMillis(long value) {
+                instant = instant.plusMillis(value);
+            }
+        };
+        final HARDumperListener.Configuration configuration = new HARDumperListener.Configuration(
+            output,
+            clock,
+            Logger.getLogger("test")).setEnableTime(false).setEnableStartedDateTime(false);
+
+        try (final var listener = new HARDumperListener(configuration)) {
+
+            final var request = requestGet();
+            final var before = listener.before(1, request);
+            clock.plusMillis(1);
+            listener.after(before.state(), before.request(), null, response(200, request));
+        }
+
+        assertEquals(expected, Files.readString(output));
+    }
+
     private HttpRequest requestGet() {
         return new UnlockedHttpRequest("GET",
             URI.create("http://localhost:1234/test1"),
@@ -142,6 +196,52 @@ class HARDumperListenerTest {
                 return HttpClient.Version.HTTP_1_1;
             }
         };
+    }
+
+    @Test
+    void configurationTest() {
+        var myTestConfig = new TestConfiguration(Path.of("/"), Clock.systemUTC(), Logger.getLogger("test"))
+            .setEnableTime(false);
+        assertTrue(myTestConfig instanceof TestConfiguration);
+        assertEquals(false, myTestConfig.isEnableTime());
+        assertEquals(true, myTestConfig.isEnableStartedDateTime());
+        myTestConfig = myTestConfig.setFoo("foo").setEnableStartedDateTime(false);
+        assertTrue(myTestConfig instanceof TestConfiguration);
+        assertEquals("foo", myTestConfig.getFoo());
+        assertEquals(false, myTestConfig.isEnableTime());
+        assertEquals(false, myTestConfig.isEnableStartedDateTime());
+        myTestConfig = myTestConfig.setEnableTime(true).setFoo("bar");
+        assertTrue(myTestConfig instanceof TestConfiguration);
+        assertEquals("bar", myTestConfig.getFoo());
+        assertEquals(true, myTestConfig.isEnableTime());
+
+
+        var myBaseConfig = new BaseHARDumperListener.BaseConfiguration(Path.of("/"), Clock.systemUTC(), Logger.getLogger("test"));
+        assertTrue(myBaseConfig instanceof BaseHARDumperListener.BaseConfiguration);
+        assertEquals(true, myBaseConfig.isEnableTime());
+        assertEquals(true, myBaseConfig.isEnableStartedDateTime());
+        myBaseConfig = myBaseConfig.setEnableTime(false).setEnableStartedDateTime(false);
+        assertEquals(false, myBaseConfig.isEnableTime());
+        assertEquals(false, myBaseConfig.isEnableStartedDateTime());
+        assertTrue(myBaseConfig instanceof BaseHARDumperListener.BaseConfiguration);
+
+    }
+
+    private static final class TestConfiguration extends BaseHARDumperListener.BaseConfiguration<TestConfiguration> {
+
+        private String foo;
+        public TestConfiguration(Path output, Clock clock, Logger logger) {
+            super(output, clock, logger);
+        }
+
+        public String getFoo() {
+            return foo;
+        }
+
+        public TestConfiguration setFoo(String foo) {
+            this.foo = foo;
+            return this;
+        }
     }
 
 }

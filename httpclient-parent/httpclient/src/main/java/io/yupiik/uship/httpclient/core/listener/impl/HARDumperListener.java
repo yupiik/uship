@@ -34,7 +34,7 @@ public class HARDumperListener extends BaseHARDumperListener implements AutoClos
     private final Har har = new Har();
 
     public HARDumperListener(final Path output, final Clock clock, final Logger logger) {
-        super(new BaseConfiguration(output, clock, logger));
+        this(new Configuration(output, clock, logger));
     }
 
     public HARDumperListener(final Configuration configuration) {
@@ -84,7 +84,7 @@ public class HARDumperListener extends BaseHARDumperListener implements AutoClos
     public static class Har extends BaseHARDumperListener.Har { // backward compat
     }
 
-    public static class Configuration extends BaseConfiguration {
+    public static class Configuration extends BaseConfiguration<Configuration> {
         public Configuration(final Path output, final Clock clock, final Logger logger) {
             super(output, clock, logger);
         }

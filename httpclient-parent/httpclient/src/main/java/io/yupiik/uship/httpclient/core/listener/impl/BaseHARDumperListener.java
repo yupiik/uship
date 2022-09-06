@@ -452,7 +452,7 @@ public abstract class BaseHARDumperListener implements RequestListener<BaseHARDu
         }
     }
 
-    public static class BaseConfiguration {
+    public static class BaseConfiguration<T extends BaseConfiguration> {
         protected final Path output;
         protected final Clock clock;
         protected final Logger logger;
@@ -470,7 +470,7 @@ public abstract class BaseHARDumperListener implements RequestListener<BaseHARDu
             return enableStartedDateTime;
         }
 
-        public <T extends BaseConfiguration> T setEnableStartedDateTime(boolean enableStartedDateTime) {
+        public T setEnableStartedDateTime(boolean enableStartedDateTime) {
             this.enableStartedDateTime = enableStartedDateTime;
             return (T) this;
         }
@@ -479,7 +479,7 @@ public abstract class BaseHARDumperListener implements RequestListener<BaseHARDu
             return enableTime;
         }
 
-        public <T extends BaseConfiguration> T  setEnableTime(boolean enableTime) {
+        public T setEnableTime(boolean enableTime) {
             this.enableTime = enableTime;
             return (T) this;
         }
