@@ -35,7 +35,7 @@ import java.util.Optional;
 import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 class HARDumperListenerTest {
 
@@ -202,28 +202,28 @@ class HARDumperListenerTest {
     void configurationTest() {
         var myTestConfig = new TestConfiguration(Path.of("/"), Clock.systemUTC(), Logger.getLogger("test"))
             .setEnableTime(false);
-        assertTrue(myTestConfig instanceof TestConfiguration);
+        assertInstanceOf(TestConfiguration.class, myTestConfig);
         assertEquals(false, myTestConfig.isEnableTime());
         assertEquals(true, myTestConfig.isEnableStartedDateTime());
         myTestConfig = myTestConfig.setFoo("foo").setEnableStartedDateTime(false);
-        assertTrue(myTestConfig instanceof TestConfiguration);
+        assertInstanceOf(TestConfiguration.class, myTestConfig);
         assertEquals("foo", myTestConfig.getFoo());
         assertEquals(false, myTestConfig.isEnableTime());
         assertEquals(false, myTestConfig.isEnableStartedDateTime());
         myTestConfig = myTestConfig.setEnableTime(true).setFoo("bar");
-        assertTrue(myTestConfig instanceof TestConfiguration);
+        assertInstanceOf(TestConfiguration.class, myTestConfig);
         assertEquals("bar", myTestConfig.getFoo());
         assertEquals(true, myTestConfig.isEnableTime());
 
 
         var myBaseConfig = new BaseHARDumperListener.BaseConfiguration(Path.of("/"), Clock.systemUTC(), Logger.getLogger("test"));
-        assertTrue(myBaseConfig instanceof BaseHARDumperListener.BaseConfiguration);
+        assertInstanceOf(BaseHARDumperListener.BaseConfiguration.class, myBaseConfig);
         assertEquals(true, myBaseConfig.isEnableTime());
         assertEquals(true, myBaseConfig.isEnableStartedDateTime());
         myBaseConfig = myBaseConfig.setEnableTime(false).setEnableStartedDateTime(false);
         assertEquals(false, myBaseConfig.isEnableTime());
         assertEquals(false, myBaseConfig.isEnableStartedDateTime());
-        assertTrue(myBaseConfig instanceof BaseHARDumperListener.BaseConfiguration);
+        assertInstanceOf(BaseHARDumperListener.BaseConfiguration.class, myBaseConfig);
 
     }
 
