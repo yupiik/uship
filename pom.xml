@@ -268,6 +268,9 @@ under the License.
           <excludeVulnerabilityIds>
             <!-- spring-web has a known CVE but we don't care since we don't provide spring and there is no fix from spring team -->
             <exclude>CVE-2016-1000027</exclude>
+            <!-- snakeyaml, only transitive from spring-boot, we don't care there -->
+            <exclude>CVE-2022-25857</exclude>
+            <exclude>CVE-2022-38752</exclude>
           </excludeVulnerabilityIds>
           <excludeCoordinates>
             <!-- quarkus transitive netty, we don't deliver it so we skip since there is no fix as of today -->

@@ -63,12 +63,6 @@
       <version>${spring-boot.version}</version>
       <scope>provided</scope>
     </dependency>
-    <dependency> <!-- forced to fix CVE during build scan -->
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-web</artifactId>
-      <version>5.3.20</version>
-      <scope>provided</scope>
-    </dependency>
 
     <dependency>
       <groupId>org.springframework.boot</groupId>
