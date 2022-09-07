@@ -15,7 +15,6 @@
  */
 package io.yupiik.uship.httpclient.core.listener.impl;
 
-import io.yupiik.uship.httpclient.core.listener.RequestListener;
 import io.yupiik.uship.httpclient.core.request.UnlockedHttpRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -41,7 +40,7 @@ class NDJSONDumperListenerTest {
     @Test
     void ndJson(@TempDir final Path temp) throws Exception {
         final var output = temp.resolve("ndjson.json");
-        final var line = "{\"request\":{\"bodySize\":-1,\"comment\":\"\",\"headerSize\":0,\"headers\":[],\"httpVersion\":\"HTTP/1.1\",\"method\":\"GET\",\"url\":\"http://localhost:1234/test1\"},\"response\":{\"bodySize\":0,\"comment\":\"\",\"content\":{\"compression\":0,\"size\":0},\"headers\":[],\"headersSize\":0,\"httpVersion\":\"HTTP/1.1\",\"status\":200,\"statusText\":\"OK\"},\"time\":0}\n";
+        final var line = "{\"request\":{\"bodySize\":-1,\"comment\":\"\",\"headerSize\":0,\"headers\":[],\"httpVersion\":\"HTTP/1.1\",\"method\":\"GET\",\"url\":\"http://localhost:1234/test1\"},\"response\":{\"bodySize\":0,\"comment\":\"\",\"content\":{\"compression\":0,\"size\":0},\"headers\":[],\"headersSize\":0,\"httpVersion\":\"HTTP/1.1\",\"status\":200,\"statusText\":\"OK\"},\"startedDateTime\":\"1970-01-01T00:00:00.000Z\",\"time\":0}\n";
         try (final var listener = new NDJSONDumperListener(new NDJSONDumperListener.Configuration(
                 output,
                 fixed(Instant.EPOCH, ZoneId.of("UTC")),
