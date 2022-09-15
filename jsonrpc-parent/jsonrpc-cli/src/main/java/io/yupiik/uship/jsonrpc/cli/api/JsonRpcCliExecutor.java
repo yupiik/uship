@@ -96,69 +96,8 @@ public class JsonRpcCliExecutor {
         try {
             final var registration = registry.getHandlers().get(args[0]).registration();
             final var options = Stream.of(args).skip(1).collect(toList());
-            return handler.execute(createCommandRequest(args[0], options, registration), null, null).handle((r, e) -> {
-                if (r instanceof Response) {
-                    final var jsonRpcResponse = (Response) r;
-                    final var error = jsonRpcResponse.getError();
-                    if (error != null && error.getCode() == -32601) { // missing method
-                        stderr.println(error);
-                        stderr.println();
-                        stderr.println(helpCommand.help(HelpCommand.HelpFormat.TEXT, null));
-                        stderr.flush();
-                        return r;
-                    }
-                    if (error != null) {
-                        stderr.println("Error #" + error.getCode());
-                        stderr.println(error.getMessage());
-                        if (error.getData() != null) {
-                            stderr.println(error.getData());
-                        }
-                        stderr.flush();
-                        return r;
-                    }
-                    final int silent = options.indexOf("--cli-silent");
-                    if (silent < 0 || !Boolean.parseBoolean(options.get(silent + 1))) {
-                        stdout.println(toString(jsonRpcResponse.getResult(), ""));
-                    }
-                    stdout.flush();
-                    final int dump = options.indexOf("--cli-response-dump");
-                    if (dump >= 0) {
-                        final var dumpPath = Paths.get(options.get(dump + 1)).normalize();
-                        final var properties = toProperties(jsonRpcResponse.getResult(), new Properties(), "");
-                        if (dumpPath.getParent() != null && !Files.exists(dumpPath.getParent())) {
-                            try {
-                                Files.createDirectories(dumpPath.getParent());
-                            } catch (final IOException ioException) {
-                                throw new IllegalStateException(ioException);
-                            }
-                        }
-                        try (final var writer = Files.newBufferedWriter(dumpPath)) {
-                            properties.store(writer, "");
-                        } catch (final IOException ioException) {
-                            throw new IllegalStateException(ioException);
-                        }
-
-                        final int dumpOnExit = options.indexOf("--cli-response-dump-delete-on-exit");
-                        if (dumpOnExit >= 0 && Boolean.parseBoolean(options.get(dumpOnExit + 1))) {
-                            dumpPath.toFile().deleteOnExit();
-                        }
-                    }
-                } else if (e != null) {
-                    if (e instanceof CliException) {
-                        stderr.println(((CliException) e).getMessage());
-                    } else {
-                        e.printStackTrace(stderr);
-                    }
-                    if (e instanceof RuntimeException) {
-                        throw (RuntimeException) e;
-                    }
-                    if (e instanceof Error) {
-                        throw (Error) e;
-                    }
-                    throw new IllegalStateException(e);
-                }
-                return r;
-            });
+            return handler.execute(createCommandRequest(args[0], options, registration), null, null)
+                    .handle((r, e) -> onResponse(options, r, e));
         } catch (final CliException re) {
             stderr.println(re.getMessage());
             return toFailure(re);
@@ -166,6 +105,70 @@ public class JsonRpcCliExecutor {
             re.printStackTrace(stderr);
             return toFailure(re);
         }
+    }
+
+    protected Object onResponse(final List<String> options, final Object response, final Throwable exception) {
+        if (response instanceof Response) {
+            final var jsonRpcResponse = (Response) response;
+            final var error = jsonRpcResponse.getError();
+            if (error != null && error.getCode() == -32601) { // missing method
+                stderr.println(error);
+                stderr.println();
+                stderr.println(helpCommand.help(HelpCommand.HelpFormat.TEXT, null));
+                stderr.flush();
+                return response;
+            }
+            if (error != null) {
+                stderr.println("Error #" + error.getCode());
+                stderr.println(error.getMessage());
+                if (error.getData() != null) {
+                    stderr.println(error.getData());
+                }
+                stderr.flush();
+                return response;
+            }
+            final int silent = options.indexOf("--cli-silent");
+            if (silent < 0 || !Boolean.parseBoolean(options.get(silent + 1))) {
+                stdout.println(toString(jsonRpcResponse.getResult(), ""));
+            }
+            stdout.flush();
+            final int dump = options.indexOf("--cli-response-dump");
+            if (dump >= 0) {
+                final var dumpPath = Paths.get(options.get(dump + 1)).normalize();
+                final var properties = toProperties(jsonRpcResponse.getResult(), new Properties(), "");
+                if (dumpPath.getParent() != null && !Files.exists(dumpPath.getParent())) {
+                    try {
+                        Files.createDirectories(dumpPath.getParent());
+                    } catch (final IOException ioException) {
+                        throw new IllegalStateException(ioException);
+                    }
+                }
+                try (final var writer = Files.newBufferedWriter(dumpPath)) {
+                    properties.store(writer, "");
+                } catch (final IOException ioException) {
+                    throw new IllegalStateException(ioException);
+                }
+
+                final int dumpOnExit = options.indexOf("--cli-response-dump-delete-on-exit");
+                if (dumpOnExit >= 0 && Boolean.parseBoolean(options.get(dumpOnExit + 1))) {
+                    dumpPath.toFile().deleteOnExit();
+                }
+            }
+        } else if (exception != null) {
+            if (exception instanceof CliException) {
+                stderr.println(((CliException) exception).getMessage());
+            } else {
+                exception.printStackTrace(stderr);
+            }
+            if (exception instanceof RuntimeException) {
+                throw (RuntimeException) exception;
+            }
+            if (exception instanceof Error) {
+                throw (Error) exception;
+            }
+            throw new IllegalStateException(exception);
+        }
+        return response;
     }
 
     protected String interpolate(final String key) { // to enhance
@@ -206,7 +209,7 @@ public class JsonRpcCliExecutor {
         return properties;
     }
 
-    private String toString(final JsonValue value, final String prefix) {
+    protected String toString(final JsonValue value, final String prefix) {
         switch (value.getValueType()) {
             case STRING:
                 return ((JsonString) value).getString();
