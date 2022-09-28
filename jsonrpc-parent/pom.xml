@@ -28,6 +28,10 @@
   <name>UShip :: JSON-RPC</name>
   <packaging>pom</packaging>
 
+  <properties>
+    <snakeyaml.version>1.33</snakeyaml.version>
+  </properties>
+
   <modules>
     <module>jsonrpc-core</module>
     <module>jsonrpc-documentation</module>
