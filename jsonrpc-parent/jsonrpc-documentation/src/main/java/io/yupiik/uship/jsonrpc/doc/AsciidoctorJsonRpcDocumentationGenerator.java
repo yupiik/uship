@@ -17,6 +17,7 @@ package io.yupiik.uship.jsonrpc.doc;
 
 import io.yupiik.uship.backbone.johnzon.jsonschema.Schema;
 import io.yupiik.uship.backbone.johnzon.jsonschema.SchemaProcessor;
+import io.yupiik.uship.backbone.johnzon.jsonschema.api.JsonSchemaMetadata;
 import io.yupiik.uship.backbone.reflect.Reflections;
 import io.yupiik.uship.jsonrpc.core.impl.Registration;
 import jakarta.servlet.http.HttpServletRequest;
@@ -129,10 +130,44 @@ public class AsciidoctorJsonRpcDocumentationGenerator extends BaseJsonRpcDocumen
                         ("==== Parameters\n\n[options=\"header\"]\n|===\n|Name|Position|Type|Required|Documentation\n" +
                                 registration.parameters().stream()
                                         .filter(it -> it.type() != HttpServletRequest.class && it.type() != HttpServletResponse.class)
-                                        .map(p -> '|' + p.name() + '|' + p.position() + '|' + asString(registration.clazz(), p.type()) + '|' + p.required() +
-                                                '|' + ofNullable(p.documentation()).filter(it -> !it.isBlank()).orElse("-"))
+                                        .map(p -> {
+                                            final var suffix = listEnumValues(p.type());
+                                            return '|' + p.name() + '|' + p.position() + '|' + asString(registration.clazz(), p.type()) + '|' + p.required() +
+                                                    '|' + ofNullable(p.documentation())
+                                                    .filter(it -> !it.isBlank())
+                                                    .map(d -> d + (d.endsWith(".") ? " " : ". ") + suffix)
+                                                    .orElseGet(() -> suffix == null ? "-" : suffix);
+                                        })
                                         .collect(joining("\n")) + "\n|===\n\n")) +
                 "==== Result type\n\n`" + (isVoid(registration.returnedType()) ? "None" : asString(registration.clazz(), registration.returnedType())) + "`\n\n";
+    }
+
+    protected String listEnumValues(final Type type) {
+        if (!Class.class.isInstance(type)) {
+            return null;
+        }
+
+        final Class<?> clazz = Class.class.cast(type);
+        if (!clazz.isEnum()) {
+            return null;
+        }
+
+        try {
+            final var fields = clazz.getFields();
+            if (fields.length == 0) {
+                return null;
+            }
+
+            return Stream.of(fields)
+                    .map(f -> "`" + f.getName() + "`" + ofNullable(f.getAnnotation(JsonSchemaMetadata.class))
+                            .map(JsonSchemaMetadata::description)
+                            .filter(it -> !it.isBlank()) // enables to skip this suffix when doc is very explicit by the value already
+                            .map(d -> " (" + d + ")")
+                            .orElse(""))
+                    .collect(joining(", ", "", "."));
+        } catch (final Exception e) {
+            return null;
+        }
     }
 
     private String asString(final Class<?> clazz, final Type returnedType) {

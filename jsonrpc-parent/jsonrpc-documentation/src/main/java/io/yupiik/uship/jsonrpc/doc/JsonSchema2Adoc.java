@@ -229,7 +229,7 @@ public class JsonSchema2Adoc implements Supplier<StringBuilder> {
                     .map(d -> " (" + d + ")")
                     .orElse("");
         } catch (final Exception e) {
-            Logger.getLogger(getClass().getName()).fine(() -> "No @Doc on " + enumClass.getName() + '.' + value);
+            Logger.getLogger(getClass().getName()).fine(() -> "No @JsonSchemaMetadata on " + enumClass.getName() + '.' + value);
             return "";
         }
     }
