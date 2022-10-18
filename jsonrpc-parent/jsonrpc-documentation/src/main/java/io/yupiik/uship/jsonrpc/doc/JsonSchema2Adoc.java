@@ -16,6 +16,7 @@
 package io.yupiik.uship.jsonrpc.doc;
 
 import io.yupiik.uship.backbone.johnzon.jsonschema.Schema;
+import io.yupiik.uship.backbone.johnzon.jsonschema.api.JsonSchemaMetadata;
 
 import java.util.List;
 import java.util.Map;
@@ -200,40 +201,37 @@ public class JsonSchema2Adoc implements Supplier<StringBuilder> {
         return main;
     }
 
-    private String extractDefaultValue(final Schema schema) {
+    protected String extractDefaultValue(final Schema schema) {
         return schema.getDefaultValue() != null ? " Default Value: `" +
                 String.valueOf(schema.getDefaultValue()).replace("|", "\\|") + "`." : "";
     }
 
-    private String extractPotentialValues(final Schema schema) {
+    protected String extractPotentialValues(final Schema schema) {
         return schema.getEnumeration() != null && !schema.getEnumeration().isEmpty() ? toEnumValues(schema) : "";
     }
 
-    private String toEnumValues(final Schema schema) {
+    protected String toEnumValues(final Schema schema) {
         final Class<? extends Enum<?>> enumClass = tryToLoadEnum(schema.getId());
         return " Potential values: " + String.join(",", schema.getEnumeration().stream()
                 .map(it -> "`" + it + "`" + findCommentForEnumValue(enumClass, String.valueOf(it)))
                 .collect(joining(","))) + '.';
     }
 
-    private String toDescription(final Schema schema) {
+    protected String toDescription(final Schema schema) {
         return schema.getDescription().isEmpty() ? "-" : schema.getDescription().replace("|", "\\|");
     }
 
-    private String findCommentForEnumValue(final Class<? extends Enum<?>> enumClass, final String value) {
-        /* todo
+    protected String findCommentForEnumValue(final Class<? extends Enum<?>> enumClass, final String value) {
         try {
-            return ofNullable(enumClass.getField(value).getAnnotation(Doc.class))
-                    .map(Doc::description)
+            return ofNullable(enumClass.getField(value).getAnnotation(JsonSchemaMetadata.class))
+                    .map(JsonSchemaMetadata::description)
                     .filter(it -> !it.isBlank()) // enables to skip this suffix when doc is very explicit by the value already
                     .map(d -> " (" + d + ")")
                     .orElse("");
         } catch (final Exception e) {
-            Logger.getLogger(getClass().getName()).warning(() -> "No @Doc on " + enumClass.getName() + '.' + value);
+            Logger.getLogger(getClass().getName()).fine(() -> "No @Doc on " + enumClass.getName() + '.' + value);
             return "";
         }
-         */
-        return "";
     }
 
     private Class<? extends Enum<?>> tryToLoadEnum(final String id) {

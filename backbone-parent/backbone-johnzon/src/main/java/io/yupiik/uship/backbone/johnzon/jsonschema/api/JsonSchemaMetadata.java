@@ -25,7 +25,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Retention(RUNTIME)
 public @interface JsonSchemaMetadata {
     /**
-     * @return title of the field.
+     * @return title of the field - ignored for enum values in general.
      */
     String title() default "";
 

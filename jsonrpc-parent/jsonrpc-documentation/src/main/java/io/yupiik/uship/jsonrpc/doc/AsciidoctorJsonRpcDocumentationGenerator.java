@@ -28,6 +28,8 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import static java.util.Comparator.comparing;
@@ -74,24 +76,7 @@ public class AsciidoctorJsonRpcDocumentationGenerator extends BaseJsonRpcDocumen
                             if (schema.getDescription() == null) {
                                 schema.setDescription("");
                             }
-                            final var jsonSchema2Adoc = new JsonSchema2Adoc(
-                                    "===", schema,
-                                    s -> s.getRef() != null || !visited.add(s)) {
-                                @Override
-                                public void prepare(final Schema in) {
-                                    if (in == null) {
-                                        super.prepare(in);
-                                        return;
-                                    }
-                                    if (in.getTitle() == null) { // quite unlikely
-                                        in.setTitle("Model");
-                                    }
-                                    if (in.getDescription() == null) {
-                                        in.setDescription("");
-                                    }
-                                    super.prepare(in);
-                                }
-                            };
+                            final var jsonSchema2Adoc = newJsonSchema2Adoc(visited, schema);
                             jsonSchema2Adoc.prepare(null);
                             final String content = jsonSchema2Adoc.get().toString().trim();
                             if (!content.isEmpty()) {
@@ -105,6 +90,10 @@ public class AsciidoctorJsonRpcDocumentationGenerator extends BaseJsonRpcDocumen
             schemas.clear();
             schemas = null;
         }
+    }
+
+    protected JsonSchema2Adoc newJsonSchema2Adoc(final Set<Schema> visited, final Schema schema) {
+        return new AutoAdjustingJsonSchema2Adoc("===", schema, s -> s.getRef() != null || !visited.add(s));
     }
 
     @Override
@@ -166,6 +155,27 @@ public class AsciidoctorJsonRpcDocumentationGenerator extends BaseJsonRpcDocumen
             new AsciidoctorJsonRpcDocumentationGenerator(args[0], CliSibling.mapClasses(args[1]), output).run();
         } catch (final IOException e) {
             throw new IllegalStateException(e);
+        }
+    }
+
+    public static class AutoAdjustingJsonSchema2Adoc extends JsonSchema2Adoc {
+        public AutoAdjustingJsonSchema2Adoc(final String s, final Schema schema, final Predicate<Schema> o) {
+            super(s, schema, o);
+        }
+
+        @Override
+        public void prepare(final Schema in) {
+            if (in == null) {
+                super.prepare(in);
+                return;
+            }
+            if (in.getTitle() == null) { // quite unlikely
+                in.setTitle("Model");
+            }
+            if (in.getDescription() == null) {
+                in.setDescription("");
+            }
+            super.prepare(in);
         }
     }
 }
