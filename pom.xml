@@ -76,6 +76,11 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>1.7.36</version>
+      </dependency>
+      <dependency>
         <groupId>org.apache.openwebbeans</groupId>
         <artifactId>openwebbeans-junit5</artifactId>
         <version>${owb.version}</version>
@@ -266,6 +271,9 @@ under the License.
         <configuration>
           <scope>compile,runtime</scope>
           <excludeVulnerabilityIds>
+            <!-- our stack does not depend on jackson so ignore it -->
+            <exclude>CVE-2022-42003</exclude>
+            <exclude>CVE-2022-42004</exclude>
             <!-- spring-web has a known CVE but we don't care since we don't provide spring and there is no fix from spring team -->
             <exclude>CVE-2016-1000027</exclude>
             <!-- netty-handler (from uqarkus) -->
