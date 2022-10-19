@@ -146,11 +146,17 @@ public class SchemaProcessor implements AutoCloseable {
                 schema.setType(Schema.SchemaType.string);
                 schema.setNullable(true);
             } else {
-                final Class<?> from = Class.class.cast(model);
+                Class<?> from = Class.class.cast(model);
                 final var provided = from.getAnnotation(JsonSchema.class);
                 if (provided != null) {
-                    forward(schemaReader.apply(provided.value()), schema);
-                } else if (from.isEnum()) {
+                    if (!provided.value().isEmpty()) {
+                        forward(schemaReader.apply(provided.value()), schema);
+                        return;
+                    } else if (provided.type() != JsonSchema.class) {
+                        from = provided.type();
+                    }
+                }
+                if (from.isEnum()) {
                     schema.setId(from.getName().replace('.', '_').replace('$', '_'));
                     schema.setType(Schema.SchemaType.string);
                     schema.setEnumeration(asList(from.getEnumConstants()));

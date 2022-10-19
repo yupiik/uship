@@ -27,5 +27,10 @@ public @interface JsonSchema {
     /**
      * @return JSON Schema (as JSON in the string) of the marked type.
      */
-    String value();
+    String value() default "";
+
+    /**
+     * @return type to compute the JSON-Schema from. ignored if {@link #value()} is set.
+     */
+    Class<?> type() default JsonSchema.class;
 }

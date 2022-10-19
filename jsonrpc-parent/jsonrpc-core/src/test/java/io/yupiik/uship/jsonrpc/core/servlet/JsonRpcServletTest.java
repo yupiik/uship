@@ -15,7 +15,9 @@
  */
 package io.yupiik.uship.jsonrpc.core.servlet;
 
+import io.yupiik.uship.backbone.johnzon.jsonschema.api.JsonSchema;
 import io.yupiik.uship.jsonrpc.core.api.JsonRpc;
+import io.yupiik.uship.jsonrpc.core.api.JsonRpcError;
 import io.yupiik.uship.jsonrpc.core.api.JsonRpcMethod;
 import io.yupiik.uship.jsonrpc.core.api.JsonRpcParam;
 import io.yupiik.uship.jsonrpc.core.protocol.JsonRpcException;
@@ -139,9 +141,21 @@ class JsonRpcServletTest {
         }
     }
 
+    public static class MyExceptionData {
+        public String name;
+    }
+
+    @JsonSchema(type = MyExceptionData.class) // ensure openrpc is well filled
+    public static class MyException extends JsonRpcException {
+        public MyException(final String message, final MyExceptionData data, final Throwable parent) {
+            super(1234, message, data, parent);
+        }
+    }
+
     @JsonRpc
     public static class Endpoints {
         @JsonRpcMethod(name = "test1")
+        @JsonRpcError(code = 1234, documentation = "When something occurs.", handled = MyException.class)
         public Foo test1(@JsonRpcParam final String in) {
             return new Foo(new StringBuilder(in).reverse().toString());
         }
