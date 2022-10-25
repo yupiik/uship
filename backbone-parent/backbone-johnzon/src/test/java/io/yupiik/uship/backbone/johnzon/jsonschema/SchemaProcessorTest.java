@@ -22,6 +22,9 @@ import jakarta.json.bind.JsonbConfig;
 import jakarta.json.bind.config.PropertyOrderStrategy;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class SchemaProcessorTest {
@@ -65,7 +68,8 @@ class SchemaProcessorTest {
         }
     }
 
-    @Test // current impl does not care of records or not but just to ensure model is still right
+    @Test
+        // current impl does not care of records or not but just to ensure model is still right
     void record() throws Exception {
         try (final var processor = new SchemaProcessor();
              final var jsonb = JsonbBuilder.create(new JsonbConfig()
@@ -88,6 +92,31 @@ class SchemaProcessorTest {
                     "    \"name\",\n" +
                     "    \"age\"\n" +
                     "  ],\n" +
+                    "  \"type\":\"object\"\n" +
+                    "}", jsonb.toJson(schema));
+        }
+    }
+
+    @Test
+    void bigNumbers() throws Exception {
+        try (final var processor = new SchemaProcessor();
+             final var jsonb = JsonbBuilder.create(new JsonbConfig()
+                     .withFormatting(true)
+                     .withPropertyOrderStrategy(PropertyOrderStrategy.LEXICOGRAPHICAL))) {
+            final var schema = processor.mapSchemaFromClass(BigNumbers.class);
+            assertEquals("" +
+                    "{\n" +
+                    "  \"$id\":\"io_yupiik_uship_backbone_johnzon_jsonschema_SchemaProcessorTest_BigNumbers\",\n" +
+                    "  \"properties\":{\n" +
+                    "    \"bd\":{\n" +
+                    "      \"nullable\":true,\n" +
+                    "      \"type\":\"string\"\n" +
+                    "    },\n" +
+                    "    \"bi\":{\n" +
+                    "      \"nullable\":true,\n" +
+                    "      \"type\":\"string\"\n" +
+                    "    }\n" +
+                    "  },\n" +
                     "  \"type\":\"object\"\n" +
                     "}", jsonb.toJson(schema));
         }
@@ -120,5 +149,10 @@ class SchemaProcessorTest {
         public int age() {
             return age;
         }
+    }
+
+    public static class BigNumbers {
+        public BigInteger bi;
+        public BigDecimal bd;
     }
 }

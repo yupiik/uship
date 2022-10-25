@@ -39,6 +39,8 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.lang.reflect.WildcardType;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -326,7 +328,9 @@ public class SchemaProcessor implements AutoCloseable {
     }
 
     private boolean isStringable(final Type model) {
-        return Date.class == model || model.getTypeName().startsWith("java.time.") || Class.class == model || Type.class == model;
+        return Date.class == model || model.getTypeName().startsWith("java.time.") ||
+                Class.class == model || Type.class == model ||
+                BigDecimal.class == model || BigInteger.class == model;
     }
 
     private void handleRequired(final Schema schema, final Supplier<String> nameSupplier) {
