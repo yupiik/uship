@@ -327,7 +327,7 @@ public class SchemaProcessor implements AutoCloseable {
         return rawModel;
     }
 
-    private boolean isStringable(final Type model) {
+    protected boolean isStringable(final Type model) {
         return Date.class == model || model.getTypeName().startsWith("java.time.") ||
                 Class.class == model || Type.class == model ||
                 BigDecimal.class == model || BigInteger.class == model;
