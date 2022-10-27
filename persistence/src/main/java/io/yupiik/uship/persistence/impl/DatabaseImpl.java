@@ -22,6 +22,7 @@ import io.yupiik.uship.persistence.api.ResultSetWrapper;
 import io.yupiik.uship.persistence.api.StatementBinder;
 import io.yupiik.uship.persistence.api.bootstrap.Configuration;
 import io.yupiik.uship.persistence.impl.operation.Operations;
+import io.yupiik.uship.persistence.impl.query.CompiledQuery;
 import io.yupiik.uship.persistence.impl.query.QueryCompiler;
 import io.yupiik.uship.persistence.impl.query.QueryKey;
 import io.yupiik.uship.persistence.impl.query.StatementBinderImpl;
@@ -96,11 +97,16 @@ public class DatabaseImpl implements Database {
     public <T> List<T> query(final Class<T> type, final String sql, final Consumer<StatementBinder> binder) {
         requireNonNull(type, "can't query without a projection");
         requireNonNull(sql, "can't query without a query");
+        final var compiledQuery = queryCompiler.getOrCreate(new QueryKey<>(type, sql));
         try (final var connection = datasource.getConnection();
-             final var query = queryCompiler.getOrCreate(new QueryKey<>(type, sql)).apply(connection)) {
+             final var query = compiledQuery.apply(connection)) {
             binder.accept(query);
             try (final var rset = query.getPreparedStatement().executeQuery()) {
-                return mapAll(type, rset);
+                final var columns = getAndCacheColumns(compiledQuery, rset);
+                final Function<ResultSet, T> provider = type == Map.class ?
+                        line -> (T) mapAsMap(List.of(columns), line) :
+                        getEntityImpl(type).nextProvider(columns, rset);
+                return new ResultSetWrapperImpl(rset).mapAll(provider::apply);
             }
         } catch (final SQLException ex) {
             throw new PersistenceException(ex);
@@ -111,14 +117,19 @@ public class DatabaseImpl implements Database {
     public <T> Optional<T> querySingle(final Class<T> type, final String sql, final Consumer<StatementBinder> binder) {
         requireNonNull(type, "can't query without a projection");
         requireNonNull(sql, "can't query without a query");
+        final var compiledQuery = queryCompiler.getOrCreate(new QueryKey<>(type, sql));
         try (final var connection = datasource.getConnection();
-             final var query = queryCompiler.getOrCreate(new QueryKey<>(type, sql)).apply(connection)) {
+             final var query = compiledQuery.apply(connection)) {
             binder.accept(query);
             try (final var rset = query.getPreparedStatement().executeQuery()) {
                 if (!rset.next()) {
                     return empty();
                 }
-                final var value = mapOne(type, rset);
+
+                final var columns = getAndCacheColumns(compiledQuery, rset);
+                final var value = type == Map.class ?
+                        (T) mapAsMap(List.of(columns), rset) :
+                        getEntityImpl(type).nextProvider(columns, rset).apply(rset);
                 if (rset.next()) {
                     return empty();
                 }
@@ -346,6 +357,17 @@ public class DatabaseImpl implements Database {
     @Override
     public <T> Entity<T> getOrCreateEntity(final Class<T> type) {
         return getEntityImpl(type);
+    }
+
+    private <T> String[] getAndCacheColumns(final CompiledQuery<T> compiledQuery, final ResultSet rset) {
+        final String[] columns;
+        if (compiledQuery.getColumnNames() != null) {
+            columns = compiledQuery.getColumnNames();
+        } else {
+            columns = toNames(rset).toArray(String[]::new);
+            compiledQuery.setColumnNames(columns);
+        }
+        return columns;
     }
 
     public void doBind(final PreparedStatement statement, final int idx, final Object value, final Class<?> type) throws SQLException {

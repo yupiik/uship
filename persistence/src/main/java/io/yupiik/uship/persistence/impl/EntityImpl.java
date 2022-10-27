@@ -345,15 +345,19 @@ public class EntityImpl<E> implements Entity<E> {
         }
     }
 
+    public Function<ResultSet, E> nextProvider(final String[] columns, final ResultSet resultSet) {
+        return toProvider(columns);
+    }
+
     public Function<ResultSet, E> nextProvider(final ResultSet resultSet) {
         try {
-            return toProvider(toNames(resultSet).toArray(String[]::new));
+            return nextProvider(toNames(resultSet).toArray(String[]::new), resultSet);
         } catch (final SQLException e) {
             throw new PersistenceException(e);
         }
     }
 
-    private Function<ResultSet, E> toProvider(final String[] columns) {
+    public Function<ResultSet, E> toProvider(final String[] columns) {
         return constructorParameters.isEmpty() ?
                 pojoProvider(columns) :
                 recordProvider(columns);

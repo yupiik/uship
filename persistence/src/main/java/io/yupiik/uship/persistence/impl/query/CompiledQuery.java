@@ -23,10 +23,20 @@ import java.sql.SQLException;
 public class CompiledQuery<T> {
     private final DatabaseImpl database;
     private final QueryKey<T> key;
+    private volatile String[] columnNames;
 
     public CompiledQuery(final DatabaseImpl database, final QueryKey<T> queryKey) {
         this.database = database;
         this.key = queryKey;
+    }
+
+    public String[] getColumnNames() {
+        return columnNames;
+    }
+
+    public CompiledQuery<T> setColumnNames(final String[] columnNames) {
+        this.columnNames = columnNames;
+        return this;
     }
 
     public QueryKey<T> getKey() {
