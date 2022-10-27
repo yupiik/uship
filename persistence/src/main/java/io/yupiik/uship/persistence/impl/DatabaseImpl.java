@@ -472,7 +472,8 @@ public class DatabaseImpl implements Database {
             final var metaData = resultSet.getMetaData();
             names = IntStream.rangeClosed(1, metaData.getColumnCount()).mapToObj(i -> {
                 try {
-                    return metaData.getColumnName(i);
+                    final var columnLabel = metaData.getColumnLabel(i);
+                    return columnLabel == null || columnLabel.isBlank() ? metaData.getColumnName(i) : columnLabel;
                 } catch (final SQLException e) {
                     throw new IllegalStateException(e);
                 }
