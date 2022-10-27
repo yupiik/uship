@@ -183,7 +183,15 @@ public class SchemaProcessor implements AutoCloseable {
                 final ParameterizedType pt = ParameterizedType.class.cast(model);
                 if (Class.class.isInstance(pt.getRawType()) && Map.class.isAssignableFrom(Class.class.cast(pt.getRawType()))) {
                     schema.setType(Schema.SchemaType.object);
-                    getOrCreateReusableObjectComponent(Object.class, schema, cache, reflectionValueExtractor, instance);
+
+                    if (pt.getActualTypeArguments().length == 2) {
+                        final var valueType = pt.getActualTypeArguments()[1];
+                        final var valueSchema = new Schema();
+                        fillSchema(valueType, valueSchema, cache, reflectionValueExtractor, null);
+                        schema.setAdditionalProperties(valueSchema);
+                    } else {
+                        getOrCreateReusableObjectComponent(Object.class, schema, cache, reflectionValueExtractor, instance);
+                    }
                 } else if (pt.getActualTypeArguments().length == 1 && Class.class.isInstance(pt.getActualTypeArguments()[0])) {
                     schema.setType(Schema.SchemaType.array);
                     final Schema items = new Schema();

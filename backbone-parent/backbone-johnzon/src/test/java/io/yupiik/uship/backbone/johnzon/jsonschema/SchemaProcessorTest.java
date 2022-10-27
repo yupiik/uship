@@ -17,6 +17,7 @@ package io.yupiik.uship.backbone.johnzon.jsonschema;
 
 import io.yupiik.uship.backbone.johnzon.jsonschema.api.JsonSchema;
 import io.yupiik.uship.backbone.johnzon.jsonschema.api.JsonSchemaMetadata;
+import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
 import jakarta.json.bind.config.PropertyOrderStrategy;
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -31,9 +33,7 @@ class SchemaProcessorTest {
     @Test
     void injectedSchema() throws Exception {
         try (final var processor = new SchemaProcessor();
-             final var jsonb = JsonbBuilder.create(new JsonbConfig()
-                     .withFormatting(true)
-                     .withPropertyOrderStrategy(PropertyOrderStrategy.LEXICOGRAPHICAL))) {
+             final var jsonb = newJsonb()) {
             final var schema = processor.mapSchemaFromClass(MyProvidedType.class);
             assertEquals("" +
                     "{\n" +
@@ -49,9 +49,7 @@ class SchemaProcessorTest {
     @Test
     void injectedFieldSchemaMeta() throws Exception {
         try (final var processor = new SchemaProcessor();
-             final var jsonb = JsonbBuilder.create(new JsonbConfig()
-                     .withFormatting(true)
-                     .withPropertyOrderStrategy(PropertyOrderStrategy.LEXICOGRAPHICAL))) {
+             final var jsonb = newJsonb()) {
             final var schema = processor.mapSchemaFromClass(MyProvidedFieldType.class);
             assertEquals("" +
                     "{\n" +
@@ -72,9 +70,7 @@ class SchemaProcessorTest {
         // current impl does not care of records or not but just to ensure model is still right
     void record() throws Exception {
         try (final var processor = new SchemaProcessor();
-             final var jsonb = JsonbBuilder.create(new JsonbConfig()
-                     .withFormatting(true)
-                     .withPropertyOrderStrategy(PropertyOrderStrategy.LEXICOGRAPHICAL))) {
+             final var jsonb = newJsonb()) {
             final var schema = processor.mapSchemaFromClass(MyRecord.class);
             assertEquals("" +
                     "{\n" +
@@ -100,9 +96,7 @@ class SchemaProcessorTest {
     @Test
     void bigNumbers() throws Exception {
         try (final var processor = new SchemaProcessor();
-             final var jsonb = JsonbBuilder.create(new JsonbConfig()
-                     .withFormatting(true)
-                     .withPropertyOrderStrategy(PropertyOrderStrategy.LEXICOGRAPHICAL))) {
+             final var jsonb = newJsonb()) {
             final var schema = processor.mapSchemaFromClass(BigNumbers.class);
             assertEquals("" +
                     "{\n" +
@@ -120,6 +114,52 @@ class SchemaProcessorTest {
                     "  \"type\":\"object\"\n" +
                     "}", jsonb.toJson(schema));
         }
+    }
+
+    @Test
+    void map() throws Exception {
+        try (final var processor = new SchemaProcessor();
+             final var jsonb = newJsonb()) {
+            assertEquals("" +
+                    "{\n" +
+                    "  \"$id\":\"io_yupiik_uship_backbone_johnzon_jsonschema_SchemaProcessorTest_MapStringRecord\",\n" +
+                    "  \"properties\":{\n" +
+                    "    \"theMap\":{\n" +
+                    "      \"additionalProperties\":{\n" +
+                    "        \"$id\":\"io_yupiik_uship_backbone_johnzon_jsonschema_SchemaProcessorTest_MyRecord\",\n" +
+                    "        \"properties\":{\n" +
+                    "          \"name\":{\n" +
+                    "            \"title\":\"The name\",\n" +
+                    "            \"type\":\"string\"\n" +
+                    "          },\n" +
+                    "          \"age\":{\n" +
+                    "            \"type\":\"integer\"\n" +
+                    "          }\n" +
+                    "        },\n" +
+                    "        \"required\":[\n" +
+                    "          \"name\",\n" +
+                    "          \"age\"\n" +
+                    "        ],\n" +
+                    "        \"type\":\"object\"\n" +
+                    "      },\n" +
+                    "      \"type\":\"object\"\n" +
+                    "    },\n" +
+                    "    \"mapStringString\":{\n" +
+                    "      \"additionalProperties\":{\n" +
+                    "        \"type\":\"string\"\n" +
+                    "      },\n" +
+                    "      \"type\":\"object\"\n" +
+                    "    }\n" +
+                    "  },\n" +
+                    "  \"type\":\"object\"\n" +
+                    "}", jsonb.toJson(processor.mapSchemaFromClass(MapStringRecord.class)));
+        }
+    }
+
+    private Jsonb newJsonb() {
+        return JsonbBuilder.create(new JsonbConfig()
+                .withFormatting(true)
+                .withPropertyOrderStrategy(PropertyOrderStrategy.LEXICOGRAPHICAL));
     }
 
     public static class MyProvidedFieldType {
@@ -154,5 +194,10 @@ class SchemaProcessorTest {
     public static class BigNumbers {
         public BigInteger bi;
         public BigDecimal bd;
+    }
+
+    public static class MapStringRecord {
+        public Map<String, MyRecord> theMap;
+        public Map<String, String> mapStringString;
     }
 }
