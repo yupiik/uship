@@ -451,7 +451,8 @@ public class EntityImpl<E> implements Entity<E> {
         final var metaData = resultSet.getMetaData();
         return IntStream.rangeClosed(1, metaData.getColumnCount()).mapToObj(i -> {
             try {
-                return metaData.getColumnName(i);
+                final var columnLabel = metaData.getColumnLabel(i);
+                return columnLabel == null || columnLabel.isBlank() ? metaData.getColumnName(i) : columnLabel;
             } catch (final SQLException e) {
                 throw new IllegalStateException(e);
             }
