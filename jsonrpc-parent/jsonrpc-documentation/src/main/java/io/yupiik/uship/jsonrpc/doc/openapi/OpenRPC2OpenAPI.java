@@ -145,16 +145,8 @@ public class OpenRPC2OpenAPI implements Function<OpenRPC2OpenAPI.Configuration, 
             return base;
         }
 
-        final var counter = new AtomicInteger();
-        errors.forEach(it -> base.add(toErrorName(it, counter.incrementAndGet()), createErrorResponse(configuration, it)));
+        errors.forEach(it -> base.add("x-jsonrpc-code=" + it.getCode(), createErrorResponse(configuration, it)));
         return base;
-    }
-
-    protected String toErrorName(final OpenRPC.ErrorValue error, final int counter) {
-        return error.getCode() >= 100 && error.getCode() <= 999 ?
-                String.valueOf(error.getCode()) :
-                // not very great but fits swagger UI, 5xx means error in this convention, code is in description
-                String.format("5%02d", error.getCode() < 100 ? error.getCode() : counter);
     }
 
     protected JsonObjectBuilder createErrorResponse(final Configuration configuration, final OpenRPC.ErrorValue error) {
@@ -166,7 +158,7 @@ public class OpenRPC2OpenAPI implements Function<OpenRPC2OpenAPI.Configuration, 
                 .add("description", ofNullable(error.getMessage()).map(it -> it + " (" + errorCode + ")").orElse(errorCode))
                 .add("content", jsonBuilderFactory.createObjectBuilder()
                         .add("application/json", jsonBuilderFactory.createObjectBuilder()
-                                .add("schema", configuration.isWrapPayload() ? wrapResult(schema) : schema)));
+                                .add("schema", configuration.isWrapPayload() ? wrapError(error.getCode(), error.getMessage(), schema) : schema)));
     }
 
     protected JsonObjectBuilder create200Response(final Configuration configuration, final JsonObject resultSchema) {
@@ -177,7 +169,7 @@ public class OpenRPC2OpenAPI implements Function<OpenRPC2OpenAPI.Configuration, 
                                 .add("schema", configuration.isWrapPayload() ? wrapResult(resultSchema) : resultSchema)));
     }
 
-    protected JsonObject wrapError(final JsonObject schema) {
+    protected JsonObject wrapError(int code, String message, final JsonObject schema) {
         return jsonBuilderFactory.createObjectBuilder()
                 .add("type", "object")
                 .add("properties", jsonBuilderFactory.createObjectBuilder()
@@ -185,7 +177,22 @@ public class OpenRPC2OpenAPI implements Function<OpenRPC2OpenAPI.Configuration, 
                                 .add("type", "string")
                                 .add("default", "2.0")
                                 .add("description", "JSON-RPC version, should always be '2.0'."))
-                        .add("error", schema))
+                        .add("error", jsonBuilderFactory.createObjectBuilder()
+                            .add("type", "object")
+                            .add("properties", jsonBuilderFactory.createObjectBuilder()
+                                .add("code", jsonBuilderFactory.createObjectBuilder()
+                                    .add("type", "integer")
+                                    .add("default", code)
+                                    .add("description", "A Number that indicates the error type that occurred. This MUST be an integer."))
+                                .add("message", jsonBuilderFactory.createObjectBuilder()
+                                    .add("type", "string")
+                                    .add("default", message)
+                                    .add("description", "A String providing a short description of the error. The message SHOULD be limited to a concise single sentence."))
+                                .add("data", schema))
+                            .add("required", jsonBuilderFactory.createArrayBuilder()
+                                .add("code")
+                                .add("message"))
+                        ))
                 .add("required", jsonBuilderFactory.createArrayBuilder()
                         .add("jsonrpc")
                         .add("error"))
