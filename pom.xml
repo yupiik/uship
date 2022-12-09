@@ -46,6 +46,7 @@
   </properties>
 
   <modules>
+    <module>simple-configuration</module>
     <module>webserver-parent</module>
     <module>backbone-parent</module>
     <module>servlet-jakarta-javax-bridge</module>

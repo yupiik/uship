@@ -24,7 +24,8 @@ However, µShip also provides all the underlying stack to make it functional suc
 
 * An embedded Servlet container (Apache Tomcat),
 * JSON-P/JSON-B integration modules,
-* JSON-RPC API/implementation and documentation utilities.
+* JSON-RPC API/implementation and documentation utilities,
+* A configuration module to easily inject properties.
 
 TIP: as of today, µShip does not go further - as providing a configuration/openmetrics/opentracing/JWT integration since these ones can easily be added using CDI libraries.
 It will probably be tackled in a few versions but was not a pre-requisite of the project.
@@ -66,6 +67,12 @@ xref:http-client.adoc[Read more.]
 UShip provides a convenient JDBC light mapper.
 
 xref:development-stack.adoc#_persistence[Read more.]
+
+== Configuration
+
+UShip provide a module to easily inject properties.
+
+xref:simple-configuration.adoc[Read more.]
 
 == Spring Boot
 

@@ -1,0 +1,28 @@
+= Simple-configuration
+
+A configuration is a class with field(s) decorated with `@Param`:
+
+[source,java]
+----
+public class DataSourceConfiguration {
+    @Param(description = "Driver to use", required = true)
+    private String driver;
+
+    @Param(description = "JDBC URL to use", required = true)
+    private String url;
+
+    @Param(description = "Database username.")
+    private String username;
+
+    @Param(description = "Database password.")
+    private String password;
+}
+----
+
+NOTE: fields are injected so they shouldn't be `final` but there is no constraint on having getters/setters.
+
+TIP: `io.yupiik.uship.configuration.documentation.ConfigurationParameterCollector` class enables to extract all parameters for a batch and then map this extraction to a documentation if needed.
+
+TIP: `simple-configuration` package enables to use this configuration without all the uship stack.
+
+TIP: passing `yupiik.binder.unset` enables to make the configuration library to behave as if no configuration was passed to the value.
