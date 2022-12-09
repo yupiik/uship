@@ -274,6 +274,7 @@ under the License.
             <!-- our stack does not depend on jackson so ignore it -->
             <exclude>CVE-2022-42003</exclude>
             <exclude>CVE-2022-42004</exclude>
+            <exclude>sonatype-2022-6438</exclude>
             <!-- spring-web has a known CVE but we don't care since we don't provide spring and there is no fix from spring team -->
             <exclude>CVE-2016-1000027</exclude>
             <!-- netty-handler (from uqarkus) -->
@@ -282,6 +283,9 @@ under the License.
             <exclude>CVE-2022-25857</exclude>
             <exclude>CVE-2022-38752</exclude>
             <exclude>CVE-2022-38751</exclude>
+            <exclude>CVE-2022-1471</exclude>
+            <!-- quarkus -->
+            <exclude>CVE-2022-4147</exclude>
           </excludeVulnerabilityIds>
           <excludeCoordinates>
             <!-- quarkus transitive netty, we don't deliver it so we skip since there is no fix as of today -->
