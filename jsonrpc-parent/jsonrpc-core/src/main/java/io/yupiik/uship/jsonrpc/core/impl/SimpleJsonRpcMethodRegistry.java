@@ -45,6 +45,7 @@ import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
@@ -207,6 +208,14 @@ public class SimpleJsonRpcMethodRegistry {
         final var info = doCreateOpenRpcInfo();
         final var components = new OpenRPC.Components(new TreeMap<>(), new TreeMap<>(), new TreeMap<>(), new TreeMap<>());
 
+        final var serverErrors = List.of(
+                new OpenRPC.ErrorValue(-32700, "Request deserialization error.", null),
+                new OpenRPC.ErrorValue(-32603, "Exception message, missing JSON-RPC response.", null),
+                new OpenRPC.ErrorValue(-32601, "Unknown JSON-RPC method.", null),
+                new OpenRPC.ErrorValue(-32600, "Invalid request: wrong JSON-RPC version attribute or request JSON type.", null),
+                new OpenRPC.ErrorValue(-2, "Exception message, unhandled exception", null),
+                new OpenRPC.ErrorValue(100, "Exception message, unhandled business error.", null));
+
         try (final var schemaProcessor = new SchemaProcessor(addClassAsTitleInSchema(), false, v -> jsonb.fromJson(v, Schema.class))) {
             final var componentsSchemaProcessorCache = new SchemaProcessor.InMemoryCache() {
                 @Override
@@ -225,6 +234,14 @@ public class SimpleJsonRpcMethodRegistry {
             };
             final var methods = handlers.entrySet().stream()
                     .map(handler -> toRpcMethod(schemaProcessor, componentsSchemaProcessorCache, handler))
+                    .map(m -> new OpenRPC.RpcMethod(
+                            m.getName(), m.getTags(), m.getSummary(), m.getDescription(), m.getExternalDocs(), m.getParams(),
+                            m.getResult(), m.getDeprecated(), m.getServers(),
+                            Stream.of(serverErrors, m.getErrors())
+                                    .filter(Objects::nonNull)
+                                    .flatMap(Collection::stream)
+                                    .collect(toList()),
+                            m.getLinks(), m.getParamStructure(), m.getExamples()))
                     .collect(toList());
             return new OpenRPC("1.2.4", info, toServers(), methods, components);
         }
