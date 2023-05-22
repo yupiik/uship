@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -105,6 +106,9 @@ public class TracingValve extends ValveBase {
         request.setAttribute(Span.class.getName(), span);
         try {
             getNext().invoke(request, response);
+        } catch (final RuntimeException | IOException | ServletException re) {
+            addErrorTag(tags, re);
+            throw re;
         } finally {
             if (request.isAsyncStarted()) {
                 request.getAsyncContext().addListener(new AsyncListener() {
@@ -126,9 +130,7 @@ public class TracingValve extends ValveBase {
 
                     @Override
                     public void onError(final AsyncEvent event) {
-                        tags.putIfAbsent("http.error", event.getThrowable() == null ?
-                                "unknown" :
-                                (event.getThrowable().getMessage() == null ? event.getThrowable().getClass().getName() : event.getThrowable().getMessage()));
+                        addErrorTag(tags, event.getThrowable());
                         status(event);
                     }
 
@@ -142,6 +144,12 @@ public class TracingValve extends ValveBase {
                 collectSpan(span);
             }
         }
+    }
+
+    protected void addErrorTag(final Map<String, Object> tags, final Throwable throwable) {
+        tags.putIfAbsent("http.error", throwable == null ?
+                "unknown" :
+                (throwable.getMessage() == null ? throwable.getClass().getName() : throwable.getMessage()));
     }
 
     protected void finish(final HttpServletResponse response, final Span span, final Instant start) {
