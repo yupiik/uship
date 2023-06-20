@@ -42,8 +42,9 @@ public class TomcatDataSource extends DataSource {
 
     /**
      * Binds a connection to current thread in write mode, the result will be committed if there is no error.
+     *
      * @param function the task to execute.
-     * @param <T> the returned type.
+     * @param <T>      the returned type.
      * @return the result of the function computation.
      */
     public <T> T write(final Function<Connection, T> function) {
@@ -56,8 +57,9 @@ public class TomcatDataSource extends DataSource {
 
     /**
      * Binds a connection to current thread in read-only mode, the result will be rolle-backed if needed.
+     *
      * @param function the task to execute.
-     * @param <T> the returned type.
+     * @param <T>      the returned type.
      * @return the result of the function computation.
      */
     public <T> T read(final Function<Connection, T> function) {
@@ -95,7 +97,9 @@ public class TomcatDataSource extends DataSource {
     }
 
     public <T> T withConnection(final SQLFunction<Connection, T> function) {
+        Connection conRef = null;
         try (final var connection = super.getConnection()) {
+            conRef = connection;
             connectionThreadLocal.set(wrap(connection));
             final var original = disableAutoCommit(connection);
             try {
@@ -109,6 +113,13 @@ public class TomcatDataSource extends DataSource {
                 restoreAutoCommit(connection, original);
             }
         } catch (final SQLException ex) {
+            try {
+                if (conRef != null && !conRef.isClosed()) {
+                    conRef.rollback();
+                }
+            } catch (final SQLException e) {
+                ex.addSuppressed(e);
+            }
             throw new IllegalStateException(ex);
         } finally {
             connectionThreadLocal.remove();
