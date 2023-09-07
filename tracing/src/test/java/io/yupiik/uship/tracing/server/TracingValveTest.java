@@ -129,7 +129,7 @@ class TracingValveTest {
                 "component", "tomcat",
                 "http.method", "GET",
                 "http.url", "/test",
-                "http.status", 200
+                "http.status", "200"
         ), span1.getTags());
         assertNotNull(span1.getTimestamp());
         assertNotNull(span1.getDuration());
@@ -145,7 +145,7 @@ class TracingValveTest {
                 "component", "tomcat",
                 "http.method", "GET",
                 "http.url", "/async-test",
-                "http.status", 200
+                "http.status", "200"
         ), span2.getTags());
         assertNotNull(span2.getTimestamp());
         assertNotNull(span2.getDuration());

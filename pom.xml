@@ -36,10 +36,10 @@
   <properties>
     <maven.compiler.java.version>11</maven.compiler.java.version>
 
-    <xbean.version>4.22</xbean.version>
+    <xbean.version>4.23</xbean.version>
     <owb.version>2.0.27</owb.version>
     <tomcat.version>10.1.13</tomcat.version>
-    <johnzon.version>1.2.19</johnzon.version>
+    <johnzon.version>1.2.21</johnzon.version>
 
     <!-- for quarkus only -->
     <netty.version>4.1.77.Final</netty.version>

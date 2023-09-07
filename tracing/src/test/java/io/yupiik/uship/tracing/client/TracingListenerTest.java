@@ -70,9 +70,9 @@ class TracingListenerTest {
                 "component", "yupiik-httpclient",
                 "http.method", "GET",
                 "http.url", "http://localhost/foo?bar=dummy",
-                "http.status", 123,
+                "http.status", "123",
                 "peer.hostname", "localhost",
-                "peer.port", -1
+                "peer.port", "-1"
         ), span1.getTags());
         assertNotNull(span1.getTimestamp());
         assertNotNull(span1.getDuration());
@@ -117,9 +117,9 @@ class TracingListenerTest {
                 "component", "yupiik-httpclient",
                 "http.method", "GET",
                 "http.url", "http://localhost/foo?bar=dummy",
-                "http.status", 123,
+                "http.status", "123",
                 "peer.hostname", "localhost",
-                "peer.port", -1
+                "peer.port", "-1"
         ), span1.getTags());
         assertNotNull(span1.getTimestamp());
         assertNotNull(span1.getDuration());

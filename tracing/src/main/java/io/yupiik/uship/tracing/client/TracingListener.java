@@ -62,7 +62,7 @@ public class TracingListener implements RequestListener<TracingListener.State> {
         tags.putIfAbsent("http.url", request.uri().toASCIIString());
         tags.putIfAbsent("http.method", request.method());
         tags.putIfAbsent("peer.hostname", request.uri().getHost());
-        tags.putIfAbsent("peer.port", request.uri().getPort());
+        tags.putIfAbsent("peer.port", Integer.toString(request.uri().getPort()));
 
         final var endpoint = new Span.Endpoint();
         endpoint.setServiceName(configuration.getServiceName());
@@ -112,7 +112,7 @@ public class TracingListener implements RequestListener<TracingListener.State> {
     @Override
     public void after(final State state, final HttpRequest request, final Throwable error, final HttpResponse<?> response) {
         if (response != null) {
-            state.span.getTags().putIfAbsent("http.status", response.statusCode());
+            state.span.getTags().putIfAbsent("http.status", Integer.toString(response.statusCode()));
         }
         if (error != null) {
             state.span.getTags().putIfAbsent("http.error", error.getMessage() == null ? error.getClass().getName() : error.getMessage());
