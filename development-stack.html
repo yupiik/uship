@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-<body>
 
 <head>
     <title>Usage</title>
@@ -12,22 +11,23 @@
     <meta name="generator" content="Yupiik Minisite Generator">
     <meta name="keywords" content="Uship, microservice, development">
 
-    <link rel="shortcut icon" href="//www.yupiik.com/img/favicon.png">
+    <link rel="shortcut icon" href="//www.yupiik.io/images/favicon.png">
 
     <link href="//fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,700,700i|Montserrat:300,400,500,700" rel="stylesheet">
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" integrity="sha512-+4zCK9k+qNFUR5X+cKL9EIR+ZOhtIloNl9GIKS57V1MyNsYpYcUrUeQc9vNfzsWfV28IaLL3i96P9sdNyeRssA==" crossorigin="anonymous" />
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/asciidoctor.js/1.5.5-5/css/asciidoctor.min.css" integrity="sha512-kI7tn5cuEg16kMeXnYmg8rEJPxbxzEM7Gsr191iQdLDevFBLXPCSU9aZWSVuP61tMZWU3nBAR1cJ7SmXnOGLZw==" crossorigin="anonymous" />
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.3/css/bootstrap.min.css" integrity="sha512-oc9+XSs1H243/FRN9Rw62Fn8EtxjEYWHXRvjS43YtueEewbS6ObfXcJNyohjHqVKFPoXXUxwc+q1K7Dee6vv9g==" crossorigin="anonymous" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/styles/vs2015.min.css" integrity="sha512-w8aclkBlN3Ha08SMwFKXFJqhSUx2qlvTBFLLelF8sm4xQnlg64qmGB/A6pBIKy0W8Bo51yDMDtQiPLNRq1WMcQ==" crossorigin="anonymous" />
-    <link id="theme-style" rel="stylesheet" href="//www.yupiik.io/uship/css/theme.css?v=1.0.10-SNAPSHOT">
+    <link id="theme-style" rel="stylesheet" href="//www.yupiik.io/uship/css/theme.css?v=1.0.18-SNAPSHOT">
     
 </head>
+<body>
     <header class="header fixed-top">
         <div class="branding docs-branding">
             <div class="container-fluid position-relative py-2">
                 <div class="docs-logo-wrapper">
 	                <div class="site-logo"><a title="Home" class="navbar-brand" href="//www.yupiik.io/uship/index.html">
-	                <img class="logo-icon mr-2" src="//www.yupiik.com/img/favicon.png" alt="logo">
+	                <img class="logo-icon mr-2" src="//www.yupiik.io/images/favicon.png" alt="logo">
 	                <span class="logo-text">Yupiik µShip <span class="text-alt">Docs</span></span></a></div>
                 </div>
 	            <div class="docs-top-utilities d-flex justify-content-end align-items-center">
@@ -87,7 +87,7 @@ This part will use Maven to illustrate the process but it is easily adaptable to
 <div class="listingblock">
 <div class="title">pom.xml</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="xml" class="language-xml hljs">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+<pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
 &lt;project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"&gt;
@@ -223,7 +223,7 @@ The simplest is to add this dependency:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="xml" class="language-xml hljs">&lt;dependency&gt;
+<pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
   &lt;groupId&gt;io.yupiik.uship&lt;/groupId&gt;
   &lt;artifactId&gt;jsonrpc-core&lt;/artifactId&gt;
   &lt;version&gt;${uship.version}&lt;/version&gt;
@@ -243,7 +243,7 @@ The simplest is to add this dependency:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@JsonRpc <b class="conum">(1)</b>
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@JsonRpc <b class="conum">(1)</b>
 @ApplicationScoped <b class="conum">(2)</b>
 public class MyEndpoints {
     @JsonRpcMethod(name = "test1") <b class="conum">(3)</b>
@@ -294,7 +294,7 @@ the JSON-RPC implementation supports by position calls (parameters are passed in
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="xml" class="language-xml hljs">&lt;dependency&gt;
+<pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
     &lt;groupId&gt;io.yupiik.uship&lt;/groupId&gt;
     &lt;artifactId&gt;jsonrpc-documentation&lt;/artifactId&gt;
     &lt;version&gt;${uship.version}&lt;/version&gt;
@@ -306,7 +306,7 @@ the JSON-RPC implementation supports by position calls (parameters are passed in
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="xml" class="language-xml hljs">&lt;plugin&gt;
+<pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;plugin&gt;
   &lt;groupId&gt;org.codehaus.mojo&lt;/groupId&gt;
     &lt;artifactId&gt;exec-maven-plugin&lt;/artifactId&gt;
     &lt;version&gt;...&lt;/version&gt;
@@ -389,7 +389,7 @@ There are several cases it can be useful:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="json" class="language-json hljs">[
+<pre class="highlightjs highlight"><code class="language-json hljs" data-lang="json">[
   {"jsonrpc":"2.0","method":"entityfindById","params":{"id":"1"}},
   {"jsonrpc":"2.0","method":"entityfindById","params":{"id":"2"}}
 ]</code></pre>
@@ -404,7 +404,7 @@ The idea is to replace them by an alternative execution which would do a single 
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="json" class="language-json hljs">[
+<pre class="highlightjs highlight"><code class="language-json hljs" data-lang="json">[
   {"jsonrpc":"2.0","method":"entityfindByIds","params":{"ids":["1","2"]}}
 ]</code></pre>
 </div>
@@ -414,7 +414,7 @@ The idea is to replace them by an alternative execution which would do a single 
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Specializes
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Specializes
 @ApplicationScoped
 public class EnrichedJsonRpcHandler extends JsonRpcHandler {
     @Inject
@@ -433,7 +433,7 @@ The trick there is to pass a state in the <code>HttpServletRequest</code> as att
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Specializes
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Specializes
 @ApplicationScoped
 public class EnrichedJsonRpcHandler extends JsonRpcHandler {
     @Inject
@@ -469,7 +469,7 @@ public class EnrichedJsonRpcHandler extends JsonRpcHandler {
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@ApplicationScoped
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@ApplicationScoped
 public class RequestRewriter {
     public JsonStructure preProcess(final BiConsumer&lt;String, Object&gt; attributeSetter, final JsonStructure structure) {
         if (isFindByIds(structure)) { // if it a rewritten request
@@ -495,7 +495,7 @@ public class RequestRewriter {
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Specializes
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Specializes
 @ApplicationScoped
 public class EnrichedJsonRpcHandler extends JsonRpcHandler {
     @Override
@@ -542,7 +542,7 @@ It works if the <code>Connection</code> is in autocommit mode or if you handle t
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">final var database = Database.of(new Configuration().setDataSource(dataSource));
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">final var database = Database.of(new Configuration().setDataSource(dataSource));
 final var entity = database.getOrCreateEntity(MyFlatEntity.class);
 final var ddl = entity.ddl();
 // execute the statement on a Connection to create the table
@@ -559,7 +559,7 @@ database.delete(entity);</code></pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Table("MY_ENTITY")
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Table("MY_ENTITY")
 public class MyEntity {
     @Id
     private String id;
@@ -609,7 +609,7 @@ to setup a <code>DataSource</code> you can rely on <code>org.apache.tomcat:tomca
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">final var sql = "SELECT DISTINCT " + String.join(", ",
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">final var sql = "SELECT DISTINCT " + String.join(", ",
         entty1.concatenateColumns(new Entity.ColumnsConcatenationRequest()
                 .setPrefix("e1.").setAliasPrefix("")),
         entity2.concatenateColumns(new Entity.ColumnsConcatenationRequest()
@@ -626,7 +626,7 @@ final var lines = final var lines = database.query(
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Table(name = "ignored")
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Table(name = "ignored")
 public class JoinModel {
     // e1
     @Id
@@ -646,7 +646,7 @@ public class JoinModel {
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">// can be done in a @PostConstruct
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">// can be done in a @PostConstruct
 final var e2Alias = "e2";
 final var e2Ignored = Set.of("e1Id");
 final var sql = "SELECT DISTINCT " + String.join(", ",
@@ -708,7 +708,7 @@ Here is a sample:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Operation(aliases = @Operation.Alias(alias = "e", type = MyFlatEntity.class))
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Operation(aliases = @Operation.Alias(alias = "e", type = MyFlatEntity.class))
 public interface MyOps {
     @Statement("select count(*) from ${e#table}")
     long countAll();
@@ -817,7 +817,7 @@ Typical examples are endpoint wrapping a set of request (sub methods), in a sing
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/json.min.js" integrity="sha512-37sW1XqaJmseHAGNg4N4Y01u6g2do6LZL8tsziiL5CMXGy04Th65OXROw2jeDeXLo5+4Fsx7pmhEJJw77htBFg==" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/dockerfile.min.js" integrity="sha512-eRNl3ty7GOJPBN53nxLgtSSj2rkYj5/W0Vg0MFQBw8xAoILeT6byOogENHHCRRvHil4pKQ/HbgeJ5DOwQK3SJA==" crossorigin="anonymous"></script>
     <script>if (!(window.minisite || {}).skipHighlightJs) { hljs.highlightAll(); }</script>
-    <script src="//www.yupiik.io/uship/js/minisite.js?v=1.0.10-SNAPSHOT"></script>
+    <script src="//www.yupiik.io/uship/js/minisite.js?v=1.0.18-SNAPSHOT"></script>
     <script>$('.page-content-body').generatedNavMenu();</script>
     <script>
             document.querySelector('div.site-logo > a').href =

@@ -312,6 +312,11 @@ div.colist.arabic > ol > li > p {
     display: inline;
 }
 
+#preamble>.sectionbody>.paragraph:first-of-type p,
+.paragraph.lead>p {
+    color: unset;
+}
+
 #searchModal .modal-dialog {
     margin: auto;
     min-width: 80%;

@@ -2,15 +2,14 @@
 <html lang="en">
 
 <head>
-    <title>Testing</title>
+    <title>Simple-configuration</title>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="A light microservice stack.">
     <meta name="author" content="Yupiik Minisite Generator">
     <meta name="generator" content="Yupiik Minisite Generator">
-    <meta name="keywords" content="Uship, microservice, testing">
-
+    
     <link rel="shortcut icon" href="//www.yupiik.io/images/favicon.png">
 
     <link href="//fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,700,700i|Montserrat:300,400,500,700" rel="stylesheet">
@@ -66,46 +65,42 @@
             </ul>
         </div>
 
-        <div id="testing-html-container" class="container page-content testing-html">
+        <div id="simple-configuration-html-container" class="container page-content simple-configuration-html">
                         <div class="page-header">
-                <h1>Uship Testing</h1>
+                <h1>Simple-configuration</h1>
             </div>
             <div class="page-content-body">
-                <div class="sect1">
-<h2 id="_testing_an_uship_application">Testing an UShip application</h2>
-<div class="sectionbody">
-<div class="paragraph">
-<p>Testing an UShip application just requires to launch a CDI container.
-By default we rely on <code>org.apache.openwebbeans:openwebbeans-junit5</code> to do so.
-It enables to start the container marking the test class with <code>@Cdi</code>:</p>
+                <div class="paragraph">
+<p>A configuration is a class with field(s) decorated with <code>@Param</code>:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Cdi <b class="conum">(1)</b>
-class MyTest {
-    @Inject <b class="conum">(2)</b>
-    @JsonRpc
-    private SomeJsonRpcController controller;
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public class DataSourceConfiguration {
+    @Param(description = "Driver to use", required = true)
+    private String driver;
 
-    @Test <b class="conum">(3)</b>
-    void doTest() {
-        // ...
-    }
+    @Param(description = "JDBC URL to use", required = true)
+    private String url;
+
+    @Param(description = "Database username.")
+    private String username;
+
+    @Param(description = "Database password.")
+    private String password;
 }</code></pre>
 </div>
 </div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>Mark the test class to need a CDI SE container,</p>
-</li>
-<li>
-<p><code>@Cdi</code> makes the test instance injections aware,</p>
-</li>
-<li>
-<p>Then simply write your tests as usual.</p>
-</li>
-</ol>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+fields are injected so they shouldn&#8217;t be <code>final</code> but there is no constraint on having getters/setters.
+</td>
+</tr>
+</table>
 </div>
 <div class="admonitionblock tip">
 <table>
@@ -114,50 +109,34 @@ class MyTest {
 <div class="title">Tip</div>
 </td>
 <td class="content">
-<code>@Cdi</code> has some configuration options. One of the most interesting is to set <code>reusable = true</code>. It will enable to use the same container for all tests.
-Since, with this mode, all tests of the suite (configurable in surefire) must use the same flag, you can define a JUnit 5 stereotype:
+<code>io.yupiik.uship.configuration.documentation.ConfigurationParameterCollector</code> class enables to extract all parameters for a batch and then map this extraction to a documentation if needed.
 </td>
 </tr>
 </table>
 </div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Target(TYPE)
-@Retention(RUNTIME)
-@TestInstance(PER_CLASS)
-@Cdi(reusable = true)
-public @interface MyAppSupport {
-}</code></pre>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Tip</div>
+</td>
+<td class="content">
+<code>simple-configuration</code> package enables to use this configuration without all the uship stack.
+</td>
+</tr>
+</table>
 </div>
-</div>
-<div class="paragraph">
-<p>Now, instead of using <code>@Cdi</code>, you can use <code>@MyAppSupport</code> on test classes avoiding to miss a <code>reusable = true</code> configuration.
-It is also very useful to add extension to all tests at once, for example if you have some JPA enhancer to execute before the container starts or some entity spying to auto delete test data between test, you can add the extensions there:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Target(TYPE)
-@Retention(RUNTIME)
-@TestInstance(PER_CLASS)
-@Cdi(reusable = true)
-@ExtendWith(OpenJPATestEnhancer.class)
-@ExtendWith(AutoEntityDeletion.class)
-public @interface MyAppSupport {
-}</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The test will then not change:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@MyAppSupport
-class MyTest {
-    // same as before
-}</code></pre>
-</div>
-</div>
-</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Tip</div>
+</td>
+<td class="content">
+passing <code>yupiik.binder.unset</code> enables to make the configuration library to behave as if no configuration was passed to the value.
+</td>
+</tr>
+</table>
 </div>
                 
             </div>
