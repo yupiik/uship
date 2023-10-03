@@ -104,7 +104,7 @@
       <plugin> <!-- mvn [compile] yupiik-tools:serve-minisite -Dminisite.attributes.build_date=dev -e -->
         <groupId>io.yupiik.maven</groupId>
         <artifactId>yupiik-tools-maven-plugin</artifactId>
-        <version>1.0.19</version>
+        <version>1.1.8</version>
         <configuration>
           <siteBase>//www.yupiik.io/uship</siteBase>
           <logoText>Yupiik µShip</logoText>
