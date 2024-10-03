@@ -38,7 +38,7 @@
 
     <xbean.version>4.25</xbean.version>
     <owb.version>2.0.27</owb.version>
-    <tomcat.version>10.1.18</tomcat.version>
+    <tomcat.version>10.1.30</tomcat.version>
     <johnzon.version>1.2.21</johnzon.version>
 
     <!-- for quarkus only -->
