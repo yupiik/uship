@@ -175,7 +175,6 @@ public class TomcatWebServer implements AutoCloseable {
         ctx.getPipeline().addValve(errorReportValve);
 
         // avoid warnings
-        ctx.setClearReferencesObjectStreamClassCaches(false);
         ctx.setClearReferencesThreadLocals(false);
         ctx.setClearReferencesRmiTargets(false);
 

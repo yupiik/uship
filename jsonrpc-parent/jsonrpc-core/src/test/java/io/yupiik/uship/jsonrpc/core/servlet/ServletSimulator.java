@@ -43,16 +43,15 @@ public class ServletSimulator {
     }
 
     public ServletSimulator() {
-        this(new Request(new Connector()), new Response());
+        this(new Request(new Connector(), new org.apache.coyote.Request()),
+                new Response(new org.apache.coyote.Response()));
 
         final var context = new StandardContext();
         context.setCookieProcessor(new Rfc6265CookieProcessor());
 
-        request.setCoyoteRequest(new org.apache.coyote.Request());
         request.setResponse(response);
         request.getMappingData().context = context;
 
-        response.setCoyoteResponse(new org.apache.coyote.Response());
         response.setRequest(request);
     }
 

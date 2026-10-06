@@ -28,7 +28,7 @@
     <name>UShip :: Samples</name>
 
     <properties>
-        <maven.compiler.java.version>11</maven.compiler.java.version>
+        <maven.compiler.java.version>17</maven.compiler.java.version>
 
         <documentation.title>Customer JSON-RPC API</documentation.title>
         <documentation.endpoints>io.yupiik.uship.samples.CustomerEndpoint</documentation.endpoints>
