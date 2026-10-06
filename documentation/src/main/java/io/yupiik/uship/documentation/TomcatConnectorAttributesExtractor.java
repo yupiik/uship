@@ -162,9 +162,10 @@ public class TomcatConnectorAttributesExtractor implements Runnable {
                             return new Attribute(
                                     name,
                                     description,
-                                    Boolean.parseBoolean(nodeAttributes
-                                            .getNamedItem("required")
-                                            .getNodeValue()),
+                                    Optional.ofNullable(nodeAttributes.getNamedItem("required"))
+                                            .map(Node::getNodeValue)
+                                            .map(Boolean::parseBoolean)
+                                            .orElse(false),
                                     type,
                                     findDefault(description)
                                             .orElseGet(() -> "boolean".equals(type) ? "false" : null),
