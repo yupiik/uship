@@ -24,7 +24,7 @@ Uship (µship) is a lightweight microservice stack for modern applications.
 
 == Pre-requisites
 
-. Ensure to use java >= 11
+. Ensure to use java >= 17
 . (Optional) Ensure to use a dependency manager such as Apache Maven/Gradle/SBT or Apache Ivy.
 
 TIP: using link:https://sdkman.io/[SDKMan] can greatly simplify the installation.
