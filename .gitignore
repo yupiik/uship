@@ -7,3 +7,4 @@ target
 generated*
 .node
 node_modules
+.yemrc

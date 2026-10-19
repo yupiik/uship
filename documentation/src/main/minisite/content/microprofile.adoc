@@ -6,7 +6,7 @@ The entry point is the module `io.yupiik.uship:jsonrpc-core`.
 
 == For Microprofile servers with Servlet layer
 
-IMPORTANT: this is for jakarta based Microprofile servers, for javax one you need to redefine a few beans, you can check out jsonrpc-quarkus module for a sample.
+IMPORTANT: this is for jakarta based Microprofile servers, for javax one you need to redefine a few beans.
 
 To enable the server you can create a `META-INF/services/jakarta.servlet.ServletContainerInitializer` file in your resources registering `io.yupiik.uship.jsonrpc.core.servlet.JsonRpcServletRegistration` servlet.
 If you don't want to bind `/jsonrpc` servlet, just register the servlet yourself on another binding instead of reusing default one.
