@@ -40,9 +40,6 @@
     <owb.version>2.0.27</owb.version>
     <tomcat.version>11.0.27</tomcat.version>
     <johnzon.version>1.2.21</johnzon.version>
-
-    <!-- for quarkus only -->
-    <netty.version>4.1.77.Final</netty.version>
   </properties>
 
   <modules>
@@ -284,23 +281,7 @@ under the License.
             <exclude>CVE-2022-38752</exclude>
             <exclude>CVE-2022-38751</exclude>
             <exclude>CVE-2022-1471</exclude>
-            <!-- quarkus -->
-            <exclude>CVE-2022-4147</exclude>
           </excludeVulnerabilityIds>
-          <excludeCoordinates>
-            <!-- quarkus transitive netty, we don't deliver it so we skip since there is no fix as of today -->
-            <excludeCoordinate>
-              <groupId>io.netty</groupId>
-              <artifactId>netty-handler</artifactId>
-              <version>${netty.version}</version>
-            </excludeCoordinate>
-            <!-- quarkus transitive guava, we don't deliver it so we skip since there is no fix as of today -->
-            <excludeCoordinate>
-              <groupId>com.google.guava</groupId>
-              <artifactId>guava</artifactId>
-              <version>31.1-jre</version>
-            </excludeCoordinate>
-          </excludeCoordinates>
         </configuration>
       </plugin>
     </plugins>
