@@ -36,7 +36,7 @@
   <properties>
     <maven.compiler.java.version>17</maven.compiler.java.version>
 
-    <xbean.version>4.25</xbean.version>
+    <xbean.version>4.31</xbean.version>
     <owb.version>2.0.27</owb.version>
     <tomcat.version>11.0.27</tomcat.version>
     <johnzon.version>1.2.21</johnzon.version>
